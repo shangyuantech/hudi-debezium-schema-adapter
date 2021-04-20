@@ -4,18 +4,28 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.example</groupId>
+    <groupId>org.apache.hudi</groupId>
     <artifactId>hudi-schema-adapter</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
         <module>debezium/mysql</module>
         <module>sql-druid</module>
+        <module>debezium/cluster</module>
     </modules>
 
     <properties>
         <maven.compiler.target>1.8</maven.compiler.target>
         <maven.compiler.source>1.8</maven.compiler.source>
+        <jackson.version>2.10.0</jackson.version>
+        <avro.version>1.8.2</avro.version>
+        <zookeeper.version>3.5.5</zookeeper.version>
+        <junit.version>4.10</junit.version>
+        <commons-lang.version>2.6</commons-lang.version>
+        <druid.version>1.2.5</druid.version>
+        <kafka.version>2.6.0</kafka.version>
+        <confluent.version>5.5.0</confluent.version>
+        <curator.version>4.3.0</curator.version>
     </properties>
 
     <build>
