@@ -32,6 +32,11 @@ public class TopicConfig {
         this.kafkaConfig.put(key, value);
     }
 
+    public void addKafkaConfig(Map<String, String> properties) {
+        if (kafkaConfig == null) kafkaConfig = new HashMap<>();
+        this.kafkaConfig.putAll(properties);
+    }
+
     public void setKafkaConfig(Map<String, String> kafkaConfig) {
         this.kafkaConfig = kafkaConfig;
     }

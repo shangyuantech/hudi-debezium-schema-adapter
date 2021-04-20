@@ -36,4 +36,8 @@ public class KafkaConfig {
         return String.valueOf(props.get(key));
     }
 
+    public String getOrDefault(String key, String defaultValue) {
+        return String.valueOf(props.getOrDefault(key, defaultValue));
+    }
+
 }

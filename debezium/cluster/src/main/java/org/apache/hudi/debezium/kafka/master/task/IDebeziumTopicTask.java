@@ -9,7 +9,7 @@ public interface IDebeziumTopicTask {
 
     IDebeziumTopicTask newInstance();
 
-    void start(String topic, TopicConfig topicConfig);
+    void start(String topic, TopicConfig topicConfig)  throws Exception ;
 
-    void stop();
+    void stop() throws Exception ;
 }

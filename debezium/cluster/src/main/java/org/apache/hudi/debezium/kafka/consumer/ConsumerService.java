@@ -31,6 +31,13 @@ public class ConsumerService<T, R> extends Thread {
         this.consumer = new KafkaConsumer<>(kafkaConfig.getProps());
     }
 
+    public ConsumerService(String topic, KafkaConfig kafkaConfig, IRecordService recordService, Class<T> t, Class<R> r) {
+        this.topic = topic;
+        this.kafkaConfig = kafkaConfig;
+        this.recordService = recordService;
+        this.consumer = new KafkaConsumer<>(kafkaConfig.getProps());
+    }
+
     public String getTopic() {
         return topic;
     }
@@ -39,12 +46,16 @@ public class ConsumerService<T, R> extends Thread {
         return kafkaConfig;
     }
 
+    private boolean needRun = true;
+
     @Override
     public void run() {
         consumer.subscribe(Collections.singletonList(topic));
         ConsumerRecords<T, R> msgList;
+        logger.info("[master] start polling {} topic records ...", topic);
+
         try {
-            for (; ; ) {
+            while (needRun) {
                 msgList = consumer.poll(Duration.ofMillis(1000));
                 if (null != msgList && msgList.count() > 0) {
                     for (ConsumerRecord<T, R> record : msgList) {
@@ -68,6 +79,7 @@ public class ConsumerService<T, R> extends Thread {
 
     public void stopConsumer() {
         try {
+            needRun = false;
             consumer.close();
         } catch (Exception e) {
             logger.error("error when closing consumer " + topic, e);
