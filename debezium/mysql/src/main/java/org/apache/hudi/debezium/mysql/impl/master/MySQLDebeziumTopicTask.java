@@ -30,7 +30,7 @@ public class MySQLDebeziumTopicTask implements IDebeziumTopicTask {
         KafkaConfig kafkaConfig = new KafkaConfig(topicConfig.getKafkaConfigProperties());
         Class<?> valueDesClass = Class.forName(kafkaConfig.getOrDefault(
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, defaultDesClass));
-        MySQLRecordService recordService = new MySQLRecordService(topicConfig, kafkaConfig, valueDesClass);
+        MySQLRecordService recordService = new MySQLRecordService(topic, topicConfig, kafkaConfig, valueDesClass);
 
         consumer = new ConsumerService(topic, kafkaConfig, recordService);
         consumer.start();
@@ -40,7 +40,6 @@ public class MySQLDebeziumTopicTask implements IDebeziumTopicTask {
     public void stop() throws Exception  {
         if (consumer != null) {
             consumer.stopConsumer();
-            consumer.interrupt();
         }
     }
 }

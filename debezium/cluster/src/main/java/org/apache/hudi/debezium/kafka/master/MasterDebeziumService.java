@@ -2,6 +2,8 @@ package org.apache.hudi.debezium.kafka.master;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hudi.debezium.common.TopicConfig;
+import org.apache.hudi.debezium.kafka.connect.DebeziumConfigBuilderPrototype;
+import org.apache.hudi.debezium.kafka.connect.scanner.ConnectorScannerTask;
 import org.apache.hudi.debezium.kafka.master.task.DebeziumTopicTaskPrototype;
 import org.apache.hudi.debezium.kafka.master.task.IDebeziumTopicTask;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
@@ -17,16 +19,35 @@ public class MasterDebeziumService implements IMasterZkService {
 
     private final static Logger logger = LoggerFactory.getLogger(MasterDebeziumService.class);
 
-    private final DebeziumTopicTaskPrototype dbTopicTaskProt;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    private final DebeziumTopicTaskPrototype dbTopicTaskPrototype;
+
+    private final DebeziumConfigBuilderPrototype configBuilderPrototype;
 
     private final ZookeeperConnector zkConnector;
 
     private final String topicPath;
 
-    public MasterDebeziumService(ZookeeperConnector zkConnector, DebeziumTopicTaskPrototype dbTopicTaskProt) {
+    private boolean scannerTaskEnabled = false;
+
+    private ConnectorScannerTask scanner = null;
+
+    public MasterDebeziumService(ZookeeperConnector zkConnector,
+                                 DebeziumTopicTaskPrototype dbTopicTaskPrototype,
+                                 DebeziumConfigBuilderPrototype configBuilderPrototype) {
         this.zkConnector = zkConnector;
-        this.dbTopicTaskProt = dbTopicTaskProt;
+        this.dbTopicTaskPrototype = dbTopicTaskPrototype;
+        this.configBuilderPrototype = configBuilderPrototype;
         this.topicPath = ZooKeeperUtils.getTopicsPath(zkConnector.getConfig().getService());
+    }
+
+    public MasterDebeziumService(ZookeeperConnector zkConnector,
+                                 DebeziumTopicTaskPrototype dbTopicTaskPrototype,
+                                 DebeziumConfigBuilderPrototype configBuilderPrototype,
+                                 boolean scannerTaskEnabled) {
+        this(zkConnector, dbTopicTaskPrototype, configBuilderPrototype);
+        this.scannerTaskEnabled = scannerTaskEnabled;
     }
 
     private List<String> getSubscribedTopics() throws Exception {
@@ -43,25 +64,45 @@ public class MasterDebeziumService implements IMasterZkService {
 
     @Override
     public void isLeader() throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
+
+        if (scannerTaskEnabled) {
+            // start a connector scanner task to sync debezium config
+            scanner = new ConnectorScannerTask(configBuilderPrototype);
+            for (String topic : getSubscribedTopics()) {
+                scanner.addConnector(topic, getTopicConfig(topic));
+            }
+
+            scanner.start();
+            // waite 3s to sync debezium config
+            Thread.sleep(TimeUnit.SECONDS.toMillis(3));
+        }
+
         while (leader) {
             List<String> subscribedTopics = getSubscribedTopics();
             // delete removed topic
             for (Map.Entry<String, IDebeziumTopicTask> topicTask : topicTasks.entrySet()) {
                 if (!subscribedTopics.contains(topicTask.getKey())) {
+
                     logger.info("[master] stop topic task {} by topic removed action", topicTask.getKey());
                     topicTask.getValue().stop();
+
+                    if (scannerTaskEnabled) {
+                        scanner.removeConnector(topicTask.getKey());
+                    }
                 }
             }
 
             // add new topic
             for (String topic : subscribedTopics) {
                 if (!topicTasks.containsKey(topic)) {
-                    String topicConfigStr = zkConnector.getData(String.format("%s/%s", topicPath, topic));
-                    TopicConfig topicConfig = objectMapper.readValue(topicConfigStr, TopicConfig.class);
+                    TopicConfig topicConfig = getTopicConfig(topic);
+
+                    if (scannerTaskEnabled) {
+                        scanner.addConnector(topic, topicConfig);
+                    }
 
                     logger.info("[master] start a new topic({}) task ...", topic);
-                    IDebeziumTopicTask debeziumTopicTask = dbTopicTaskProt.getTopicTask(topicConfig.getDbType());
+                    IDebeziumTopicTask debeziumTopicTask = dbTopicTaskPrototype.getTopicTask(topicConfig.getDbType());
                     debeziumTopicTask.start(topic, topicConfig);
                     topicTasks.put(topic, debeziumTopicTask);
                 }
@@ -71,12 +112,25 @@ public class MasterDebeziumService implements IMasterZkService {
         }
     }
 
+    private TopicConfig getTopicConfig(String topic) throws Exception {
+        String topicConfigStr = zkConnector.getData(String.format("%s/%s", topicPath, topic));
+        return objectMapper.readValue(topicConfigStr, TopicConfig.class);
+    }
+
     @Override
     public void notLeader() throws Exception {
         leader = false;
+
+        // stop topic task
         for (Map.Entry<String, IDebeziumTopicTask> topicTask : topicTasks.entrySet()) {
             logger.info("[master] stop topic task {} by not leader action", topicTask.getKey());
             topicTask.getValue().stop();
+        }
+
+        //  stop scanner task
+        if (scannerTaskEnabled) {
+            scanner.stopTask();
+            scanner = null;
         }
     }
 }

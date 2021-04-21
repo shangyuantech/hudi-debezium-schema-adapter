@@ -19,7 +19,7 @@ import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
 import org.apache.zookeeper.CreateMode;
 import org.junit.Before;
 import org.junit.Test;
-import org.mortbay.jetty.Server;
+//import org.mortbay.jetty.Server;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +56,8 @@ public class TestMasterSlave {
         DebeziumTopicTaskPrototype dbTopicTaskPrototype = new DebeziumTopicTaskPrototype();
         dbTopicTaskPrototype.addDebeziumTopicTask(DBType.MySQL, new TestDebeziumTopicTask());
 
-        MasterDebeziumService masterDebeziumService = new MasterDebeziumService(zkConnector, dbTopicTaskPrototype);
+        MasterDebeziumService masterDebeziumService = new MasterDebeziumService(zkConnector, dbTopicTaskPrototype,
+                null);
         MasterService master = new MasterService(zkConnector, masterDebeziumService);
         master.startMaster();
 
@@ -71,11 +72,11 @@ public class TestMasterSlave {
         zkConnector.createNode(String.format("%s/test_topic", masterDebeziumService.getTopicPath()),
                 topicConfigStr, CreateMode.EPHEMERAL);
 
-        Server server = new Server();
-        server.start();
-        server.join();
+        //Server server = new Server();
+        //server.start();
+        //server.join();
 
-        //Thread.sleep(TimeUnit.SECONDS.toMillis(20));
+        Thread.sleep(TimeUnit.SECONDS.toMillis(20));
         //server.stop();
     }
 }

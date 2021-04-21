@@ -28,6 +28,7 @@
         <curator.version>4.3.0</curator.version>
         <slf4j.version>1.7.29</slf4j.version>
         <okhttp.version>4.9.1</okhttp.version>
+        <jersey-test.version>2.33</jersey-test.version>
     </properties>
 
     <build>
@@ -43,4 +44,15 @@
             </plugin>
         </plugins>
     </build>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+        <repository>
+            <id>repo1maven</id>
+            <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+    </repositories>
 </project>

@@ -21,4 +21,11 @@ public abstract class DebeziumConfig {
     abstract public void init(Map<String, String> configMap);
 
     abstract public boolean equals(Object o);
+
+    @Override
+    public String toString() {
+        return "DebeziumConfig{" +
+                "serverName='" + serverName + '\'' +
+                '}';
+    }
 }

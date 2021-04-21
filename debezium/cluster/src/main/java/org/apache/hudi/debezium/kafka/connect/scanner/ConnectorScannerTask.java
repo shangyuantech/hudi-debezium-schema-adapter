@@ -47,7 +47,7 @@ public class ConnectorScannerTask extends Thread {
         for (ConnectorScanner scanner : connectorScanners.values()) {
             Set<String> serverNames = scanner.getServerNames();
             if (serverNames.contains(serverName)) {
-                logger.info("[master] remove debezium config by serverName = {}", serverName);
+                logger.info("[config] remove debezium config by serverName = {}", serverName);
                 scanner.removeServerName(serverName);
                 // todo need to remove cache, but not sure it is safe
                 DebeziumConfigCache.CACHE.removeDefaultConfig(serverName);
@@ -59,12 +59,12 @@ public class ConnectorScannerTask extends Thread {
         while (!exit){
             if (connectorScanners.size() > 0) {
                 if (logger.isDebugEnabled()) {
-                    logger.debug("[master] start to scan kafka connectors to get debezium config and check if updated ...");
+                    logger.debug("[config] start to scan kafka connectors to get debezium config and check if updated ...");
                 }
                 for (Map.Entry<String, ConnectorScanner> entry : connectorScanners.entrySet()) {
                     ConnectorScanner scanner = entry.getValue();
                     if (scanner.getServerNameSize() == 0) {
-                        logger.info("[master] remove scanner task by kafka connect url = {}", entry.getKey());
+                        logger.info("[config] remove scanner task by kafka connect url = {}", entry.getKey());
                         connectorScanners.remove(entry.getKey());
                     } else {
                         try {
@@ -83,7 +83,7 @@ public class ConnectorScannerTask extends Thread {
             }
         }
 
-        logger.info("[master] finished scanning kafka connectors ...");
+        logger.info("[config] finished scanning kafka connectors ...");
     }
 
     public void stopTask() {

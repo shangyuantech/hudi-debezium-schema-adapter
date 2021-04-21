@@ -7,10 +7,14 @@ import java.util.HashMap;
 
 public class DebeziumConfigBuilderPrototype {
 
+    public DebeziumConfigBuilderPrototype() {
+    }
+
     private final HashMap<DBType, IDebeziumConfigBuilder> debeziumConfigBuilderPrototype = new HashMap<>();
 
-    public void addDebeziumConfigBuilder(DBType dbType, IDebeziumConfigBuilder debeziumConfigBuilder) {
+    public DebeziumConfigBuilderPrototype addDebeziumConfigBuilder(DBType dbType, IDebeziumConfigBuilder debeziumConfigBuilder) {
         debeziumConfigBuilderPrototype.put(dbType, debeziumConfigBuilder);
+        return this;
     }
 
     public IDebeziumConfigBuilder getDebeziumConfigBuilder(DBType dbType) throws DebeziumConfigBuilderNotFoundException {

@@ -111,30 +111,18 @@
         <dependency>
             <groupId>org.glassfish.jersey.test-framework.providers</groupId>
             <artifactId>jersey-test-framework-provider-simple</artifactId>
-            <version>2.33</version>
+            <version>${jersey-test.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.glassfish.jersey.test-framework.providers</groupId>
             <artifactId>jersey-test-framework-provider-external</artifactId>
-            <version>2.33</version>
+            <version>${jersey-test.version}</version>
             <scope>test</scope>
         </dependency>
 
 
     </dependencies>
-
-    <repositories>
-        <repository>
-            <id>confluent</id>
-            <url>https://packages.confluent.io/maven/</url>
-        </repository>
-        <repository>
-            <id>repo1maven</id>
-            <url>https://repo1.maven.org/maven2/</url>
-        </repository>
-    </repositories>
-
 
 </project>

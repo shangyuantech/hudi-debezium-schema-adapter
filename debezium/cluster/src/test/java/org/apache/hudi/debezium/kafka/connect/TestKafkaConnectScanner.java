@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.hudi.debezium.kafka.connect.TestKafkaConnectUtils.*;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 
-public class TestKafkaConnectScanner  extends JerseyTest {
+public class TestKafkaConnectScanner extends JerseyTest {
 
     @Path("connectors")
     public static class ConnectorResource {

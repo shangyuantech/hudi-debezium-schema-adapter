@@ -47,6 +47,7 @@ public class TestKafkaConnectUtils extends JerseyTest {
             "\t],\n" +
             "\t\"type\": \"source\"\n" +
             "}";
+
     public static final String CONNECTOR_CONFIG2 = "{\n" +
             "\t\"config\": {\n" +
             "\t\t\"connector.class\": \"io.debezium.connector.mysql.MySqlConnector\",\n" +

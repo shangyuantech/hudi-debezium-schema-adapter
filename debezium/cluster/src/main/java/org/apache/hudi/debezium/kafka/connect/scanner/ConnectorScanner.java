@@ -32,12 +32,14 @@ public class ConnectorScanner {
         this.debeziumConfigBuilderPrototype = debeziumConfigBuilderPrototype;
     }
 
-    public void addServerName(String serverName, DBType dbType) {
+    public ConnectorScanner addServerName(String serverName, DBType dbType) {
         serverNames.put(serverName, dbType);
+        return this;
     }
 
-    public void removeServerName(String serverName) {
+    public ConnectorScanner removeServerName(String serverName) {
         serverNames.remove(serverName);
+        return this;
     }
 
     public Set<String> getServerNames() {
@@ -67,7 +69,7 @@ public class ConnectorScanner {
 
                 DebeziumConfig oldConfig = DebeziumConfigCache.CACHE.getDefaultConfig(serverName);
                 if (!debeziumConfig.equals(oldConfig)) {
-                    logger.info("[master] need to add or update debezium config ({}) to cache \n{}", serverName, debeziumConfig);
+                    logger.info("[config] need to add or update debezium config ({}) to cache \n{}", serverName, debeziumConfig);
                     DebeziumConfigCache.CACHE.addDebeziumConfig(serverName, debeziumConfig);
                 }
                 break;
