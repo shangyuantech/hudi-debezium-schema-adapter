@@ -39,7 +39,7 @@ public class ZooKeeperUtils {
         try {
             Enumeration<NetworkInterface> netInterfaces = NetworkInterface.getNetworkInterfaces();
             InetAddress ip = null;
-            boolean finded = false;//  «∑Ò’“µΩÕ‚Õ¯IP
+            boolean finded = false;
             while (netInterfaces.hasMoreElements() && !finded) {
                 NetworkInterface ni = netInterfaces.nextElement();
                 Enumeration<InetAddress> address = ni.getInetAddresses();

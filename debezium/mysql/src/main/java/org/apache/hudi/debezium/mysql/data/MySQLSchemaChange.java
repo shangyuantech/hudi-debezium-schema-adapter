@@ -1,8 +1,9 @@
 package org.apache.hudi.debezium.mysql.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 
-public class SchemaChange {
+public class MySQLSchemaChange implements SchemaRecord {
 
     private String databaseName;
 

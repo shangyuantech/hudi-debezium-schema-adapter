@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.mysql.impl;
+package org.apache.hudi.debezium.mysql.impl.slave;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;

@@ -1,5 +1,6 @@
 package org.apache.hudi.debezium.kafka.util;
 
+import org.apache.avro.generic.GenericRecord;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +36,13 @@ public class TestSchemaUtils {
         byte[] avroData = AvroUtils.transformObjectToByte(employee, Employee.class);
         Employee empl = AvroUtils.transformByteToObject(avroData, Employee.class);
         Assert.assertEquals(empl.getName(), employee.getName());
+    }
+
+    @Test
+    public void testObjectToAvro() throws IOException {
+        GenericRecord genericRecord = AvroUtils.transformObjectToAvro(employee, Employee.class);
+        Assert.assertEquals(genericRecord.get("name").toString(), employee.getName());
+        Assert.assertEquals(genericRecord.get("age"), employee.getAge());
     }
 
 }

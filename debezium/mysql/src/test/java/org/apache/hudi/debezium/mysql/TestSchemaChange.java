@@ -2,7 +2,7 @@ package org.apache.hudi.debezium.mysql;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.hudi.debezium.mysql.data.SchemaChange;
+import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -25,7 +25,7 @@ public class TestSchemaChange {
     @Test
     public void testSchemaChange () throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
-        SchemaChange schemaChange = objectMapper.readValue(data, SchemaChange.class);
+        MySQLSchemaChange schemaChange = objectMapper.readValue(data, MySQLSchemaChange.class);
 
         Assert.assertEquals(schemaChange.getDatabaseName(), "bigdata");
         Assert.assertEquals(schemaChange.getSource().getServer(), "cluster_mysql_bigdata");

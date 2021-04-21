@@ -7,9 +7,9 @@ import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.kafka.master.MasterDebeziumService;
 import org.apache.hudi.debezium.kafka.master.task.DebeziumTopicTaskPrototype;
-import org.apache.hudi.debezium.mysql.data.SchemaChange;
-import org.apache.hudi.debezium.mysql.impl.MySQLDebeziumTopicTask;
-import org.apache.hudi.debezium.mysql.impl.MySQLSlaveZkService;
+import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
+import org.apache.hudi.debezium.mysql.impl.master.MySQLDebeziumTopicTask;
+import org.apache.hudi.debezium.mysql.impl.slave.MySQLSlaveZkService;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConfig;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.master.MasterService;
@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import static net.mguenther.kafka.junit.EmbeddedKafkaCluster.provisionWith;
 import static net.mguenther.kafka.junit.ObserveKeyValues.on;
+import static net.mguenther.kafka.junit.SendKeyValues.to;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 import static org.apache.kafka.clients.CommonClientConfigs.GROUP_ID_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.*;
@@ -46,7 +47,7 @@ public class TestMySQLClusterService {
         testingServer = new TestingServer(2181, tmp);
         testingServer.start();
 
-        // start kafka
+        // start kafka https://mguenther.github.io/kafka-junit/
         kafka = provisionWith(EmbeddedKafkaClusterConfig.useDefaults());
         kafka.start();
     }
@@ -95,18 +96,18 @@ public class TestMySQLClusterService {
                 topicConfigStr, CreateMode.EPHEMERAL);
 
         // send topic a data
-        SchemaChange schemaChange = new SchemaChange();
+        MySQLSchemaChange schemaChange = new MySQLSchemaChange();
         schemaChange.setDatabaseName("test");
-        schemaChange.setDdl("");
-        schemaChange.getSource().setServer("cluster_mysql_bigdata");
+        schemaChange.setDdl("create table test (id int(11), name varchar(50))");
+        schemaChange.getSource().setServer("cluster_mysql_test");
         schemaChange.getPosition().setFile("mysql-bin.000003");
         schemaChange.getPosition().setPos(4132448L);
         schemaChange.getPosition().setServerId("1");
         schemaChange.getPosition().setTsSec(System.currentTimeMillis());
 
-        KeyValue<String, String> record = new KeyValue<>("bigdata", objectMapper.writeValueAsString(schemaChange));
-        kafka.send(SendKeyValues.to("test_topic", Collections.singletonList(record)).build());
-        //kafka.observe(on("test_topic", 1).build());
+        KeyValue<String, String> record = new KeyValue<>("test", objectMapper.writeValueAsString(schemaChange));
+        kafka.send(to("test_topic", Collections.singletonList(record)).build());
+        kafka.observe(on("test_topic", 1).build());
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(30));
     }

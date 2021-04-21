@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.mysql.impl;
+package org.apache.hudi.debezium.mysql.impl.master;
 
 import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.TopicConfig;
@@ -27,11 +27,12 @@ public class MySQLDebeziumTopicTask implements IDebeziumTopicTask {
 
     @Override
     public void start(String topic, TopicConfig topicConfig) throws Exception {
-        MySQLRecordService recordService = new MySQLRecordService();
         KafkaConfig kafkaConfig = new KafkaConfig(topicConfig.getKafkaConfigProperties());
-        Class<?> keyDesClass = Class.forName(kafkaConfig.getOrDefault(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, defaultDesClass));
-        Class<?> valueDesClass = Class.forName(kafkaConfig.getOrDefault(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, defaultDesClass));
-        consumer = new ConsumerService<>(topic, kafkaConfig, recordService, keyDesClass, valueDesClass);
+        Class<?> valueDesClass = Class.forName(kafkaConfig.getOrDefault(
+                ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, defaultDesClass));
+        MySQLRecordService recordService = new MySQLRecordService(topicConfig, kafkaConfig, valueDesClass);
+
+        consumer = new ConsumerService(topic, kafkaConfig, recordService);
         consumer.start();
     }
 

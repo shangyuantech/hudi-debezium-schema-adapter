@@ -8,19 +8,26 @@ import com.fasterxml.jackson.dataformat.avro.AvroSchema;
 import com.fasterxml.jackson.dataformat.avro.schema.AvroSchemaGenerator;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.io.BinaryEncoder;
+import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.reflect.ReflectDatumWriter;
 import org.apache.avro.specific.SpecificDatumWriter;
 
+import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+/**
+ * use https://github.com/FasterXML/jackson-dataformats-binary/tree/master/avro
+ */
 public class AvroUtils {
 
     private static final ObjectMapper mapper = new ObjectMapper(new AvroFactory());
 
-    public static <T> T transformAvroToObject(GenericData.Record recordData, Class<T> clazz) throws IOException {
-        //AvroSchema avroSchema = new AvroSchema(recordData.getSchema());
+    public static <T> T transformAvroToObject(@NotNull GenericRecord recordData, Class<T> clazz) throws IOException {
         SpecificDatumWriter<Object> writer = new SpecificDatumWriter<>(recordData.getSchema());
         byte[] serialized = null;
 
@@ -31,7 +38,6 @@ public class AvroUtils {
             serialized = os.toByteArray();
         }
 
-        //return mapper.reader(clazz).with(avroSchema).readValue(serialized);
         return transformByteToObject(serialized, clazz);
     }
 
@@ -42,6 +48,12 @@ public class AvroUtils {
     public static <T> byte[] transformObjectToByte(T object, Class<T> clazz) throws JsonProcessingException {
         return mapper.writer(new AvroSchema(getObjectSchema(clazz)))
                 .writeValueAsBytes(object);
+    }
+
+    public static <T> GenericRecord transformObjectToAvro(T object, Class<T> clazz) throws IOException {
+        GenericDatumReader<T> genericRecordReader = new GenericDatumReader<>(getObjectSchema(clazz));
+        return (GenericRecord) genericRecordReader.read(null,
+                DecoderFactory.get().binaryDecoder(transformObjectToByte(object, clazz), null));
     }
 
     public static <T> Schema getObjectSchema(Class<T> clazz) throws JsonMappingException {

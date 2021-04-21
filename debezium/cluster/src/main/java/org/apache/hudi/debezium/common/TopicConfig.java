@@ -15,6 +15,9 @@ public class TopicConfig {
     @JsonProperty("kafka_config")
     private Map<String, String> kafkaConfig;
 
+    @JsonProperty("kafka_connect_url")
+    private String kafkaConnectUrl;
+
     public DBType getDbType() {
         return dbType;
     }
@@ -25,6 +28,14 @@ public class TopicConfig {
 
     public Map<String, String> getKafkaConfig() {
         return kafkaConfig;
+    }
+
+    public String getKafkaConnectUrl() {
+        return kafkaConnectUrl;
+    }
+
+    public void setKafkaConnectUrl(String kafkaConnectUrl) {
+        this.kafkaConnectUrl = kafkaConnectUrl;
     }
 
     public void addKafkaConfig(String key, String value) {
