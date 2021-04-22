@@ -1,6 +1,5 @@
 package org.apache.hudi.debezium.mysql;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import net.mguenther.kafka.junit.*;
 import org.apache.curator.test.TestingServer;
 import org.apache.hudi.debezium.common.DBType;
@@ -12,11 +11,11 @@ import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.impl.connect.MySQLDebeziumConfigBuilder;
 import org.apache.hudi.debezium.mysql.impl.master.MySQLDebeziumTopicTask;
 import org.apache.hudi.debezium.mysql.impl.slave.MySQLSlaveZkService;
-import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConfig;
+import org.apache.hudi.debezium.config.ZookeeperConfig;
+import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.master.MasterService;
 import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
-import org.apache.zookeeper.CreateMode;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Before;
@@ -27,7 +26,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import java.io.File;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -149,17 +147,16 @@ public class TestMySQLClusterService extends JerseyTest {
         topicConfig.addKafkaConfig(GROUP_ID_CONFIG, "test_group");
         topicConfig.addKafkaConfig(AUTO_OFFSET_RESET_CONFIG, "earliest");
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        String topicConfigStr = objectMapper.writeValueAsString(topicConfig);
-        zkConnector.createNode(String.format("%s/cluster_mysql_test", masterDebeziumService.getTopicPath()),
-                topicConfigStr, CreateMode.EPHEMERAL);
+        String topicConfigStr = JsonUtils.writeValueAsString(topicConfig);
+        zkConnector.createNode(String.format("%s/cluster_mysql_test", masterDebeziumService.getTopicPath()), topicConfigStr);
 
         // -------------------- start master --------------------
         MasterService master = new MasterService(zkConnector, masterDebeziumService);
         master.startMaster();
 
         // -------------------- start slave --------------------
-        SlaveService slave = new SlaveService(zkConnector, new MySQLSlaveZkService());
+        SlaveService slave = new SlaveService(new ZookeeperConnector(zkConfig),
+                new MySQLSlaveZkService(masterDebeziumService.getTopicPath()));
         slave.startSlave();
 
         // send topic a data
@@ -171,7 +168,7 @@ public class TestMySQLClusterService extends JerseyTest {
         schemaChange1.getPosition().setPos(4132448L);
         schemaChange1.getPosition().setServerId("1");
         schemaChange1.getPosition().setTsSec(System.currentTimeMillis());
-        KeyValue<String, String> record1 = new KeyValue<>("test_database", objectMapper.writeValueAsString(schemaChange1));
+        KeyValue<String, String> record1 = new KeyValue<>("test_database", JsonUtils.writeValueAsString(schemaChange1));
 
         MySQLSchemaChange schemaChange2 = new MySQLSchemaChange();
         schemaChange2.setDatabaseName("test_database");
@@ -181,7 +178,7 @@ public class TestMySQLClusterService extends JerseyTest {
         schemaChange2.getPosition().setPos(4132449L);
         schemaChange2.getPosition().setServerId("1");
         schemaChange2.getPosition().setTsSec(System.currentTimeMillis());
-        KeyValue<String, String> record2 = new KeyValue<>("test_database", objectMapper.writeValueAsString(schemaChange2));
+        KeyValue<String, String> record2 = new KeyValue<>("test_database", JsonUtils.writeValueAsString(schemaChange2));
 
         kafka.send(to("cluster_mysql_test", Arrays.asList(record1, record2)).build());
         kafka.observe(on("cluster_mysql_test", 2).build());

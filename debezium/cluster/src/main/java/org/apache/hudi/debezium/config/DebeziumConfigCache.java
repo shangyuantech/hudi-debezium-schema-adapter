@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.kafka.config;
+package org.apache.hudi.debezium.config;
 
 import java.util.HashMap;
 import java.util.Set;

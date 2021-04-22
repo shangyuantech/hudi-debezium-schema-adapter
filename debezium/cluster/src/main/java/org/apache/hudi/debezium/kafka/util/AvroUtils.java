@@ -1,6 +1,7 @@
 package org.apache.hudi.debezium.kafka.util;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.avro.AvroFactory;
@@ -25,7 +26,8 @@ import java.io.IOException;
  */
 public class AvroUtils {
 
-    private static final ObjectMapper mapper = new ObjectMapper(new AvroFactory());
+    private static final ObjectMapper mapper = new ObjectMapper(new AvroFactory())
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);;
 
     public static <T> T transformAvroToObject(@NotNull GenericRecord recordData, Class<T> clazz) throws IOException {
         SpecificDatumWriter<Object> writer = new SpecificDatumWriter<>(recordData.getSchema());

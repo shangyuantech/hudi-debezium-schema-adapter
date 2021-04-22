@@ -2,7 +2,7 @@ package org.apache.hudi.debezium.kafka.connect.scanner;
 
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.common.exception.DebeziumConfigBuilderNotFoundException;
-import org.apache.hudi.debezium.kafka.config.DebeziumConfigCache;
+import org.apache.hudi.debezium.config.DebeziumConfigCache;
 import org.apache.hudi.debezium.kafka.connect.DebeziumConfigBuilderPrototype;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

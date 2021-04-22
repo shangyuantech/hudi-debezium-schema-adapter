@@ -1,12 +1,11 @@
 package org.apache.hudi.debezium.kafka.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hudi.debezium.util.JsonUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -18,8 +17,6 @@ public class KafkaConnectUtils {
     private static final OkHttpClient client = new OkHttpClient();
 
     public static final String CONNECTORS_ENDPOINT = "connectors";
-
-    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     private static String combineUrls(String kafkaConnectUrl, String ... endpoints) {
         return String.format("%s/%s",
@@ -37,8 +34,7 @@ public class KafkaConnectUtils {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
-                return objectMapper.readValue(Objects.requireNonNull(response.body()).string(),
-                        new TypeReference<List<String>>(){});
+                return JsonUtils.jsonToList(Objects.requireNonNull(response.body()).string());
             }
             throw new IOException("Unexpected code " + response);
         }
@@ -54,9 +50,8 @@ public class KafkaConnectUtils {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.isSuccessful()) {
-                JsonNode connectorCfg = objectMapper.readTree(Objects.requireNonNull(response.body()).string());
-                return objectMapper.readValue(objectMapper.treeAsTokens(connectorCfg.get("config")),
-                        new TypeReference<Map<String, String>>(){});
+                JsonNode connectorCfg = JsonUtils.getJsonNode(Objects.requireNonNull(response.body()).string());
+                return JsonUtils.jsonToMap(connectorCfg.get("config"));
             }
             throw new IOException("Unexpected code " + response);
         }

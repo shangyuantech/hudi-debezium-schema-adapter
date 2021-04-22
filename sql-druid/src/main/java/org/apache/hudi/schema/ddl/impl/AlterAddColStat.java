@@ -7,17 +7,29 @@ import org.apache.hudi.schema.ddl.DDLStat;
 
 public class AlterAddColStat extends DDLStat {
 
-    private final String addColName;
+    private String addColName;
 
-    private final SQLDataType dataType;
+    private SQLDataType dataType;
 
-    private final SQLExpr defaultValue;
+    private SQLExpr defaultValue;
 
     public AlterAddColStat(String database, String table, DDLType ddlType,
                            String addColName, SQLDataType dataType, SQLExpr defaultValue) {
         super(database, table, ddlType);
         this.addColName = addColName;
         this.dataType = dataType;
+        this.defaultValue = defaultValue;
+    }
+
+    public void setAddColName(String addColName) {
+        this.addColName = addColName;
+    }
+
+    public void setDataType(SQLDataType dataType) {
+        this.dataType = dataType;
+    }
+
+    public void setDefaultValue(SQLExpr defaultValue) {
         this.defaultValue = defaultValue;
     }
 

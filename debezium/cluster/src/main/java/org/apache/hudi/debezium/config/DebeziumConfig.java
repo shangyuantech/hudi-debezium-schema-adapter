@@ -1,8 +1,11 @@
-package org.apache.hudi.debezium.kafka.config;
+package org.apache.hudi.debezium.config;
 
 import java.util.Map;
 
 public abstract class DebeziumConfig {
+
+    public DebeziumConfig() {
+    }
 
     public DebeziumConfig(String serverName) {
         this.serverName = serverName;

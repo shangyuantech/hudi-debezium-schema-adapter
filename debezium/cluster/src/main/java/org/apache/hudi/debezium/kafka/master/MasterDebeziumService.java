@@ -1,11 +1,11 @@
 package org.apache.hudi.debezium.kafka.master;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.kafka.connect.DebeziumConfigBuilderPrototype;
 import org.apache.hudi.debezium.kafka.connect.scanner.ConnectorScannerTask;
 import org.apache.hudi.debezium.kafka.master.task.DebeziumTopicTaskPrototype;
 import org.apache.hudi.debezium.kafka.master.task.IDebeziumTopicTask;
+import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.master.IMasterZkService;
 import org.apache.hudi.debezium.zookeeper.util.ZooKeeperUtils;
@@ -18,8 +18,6 @@ import java.util.concurrent.TimeUnit;
 public class MasterDebeziumService implements IMasterZkService {
 
     private final static Logger logger = LoggerFactory.getLogger(MasterDebeziumService.class);
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final DebeziumTopicTaskPrototype dbTopicTaskPrototype;
 
@@ -103,7 +101,7 @@ public class MasterDebeziumService implements IMasterZkService {
 
                     logger.info("[master] start a new topic({}) task ...", topic);
                     IDebeziumTopicTask debeziumTopicTask = dbTopicTaskPrototype.getTopicTask(topicConfig.getDbType());
-                    debeziumTopicTask.start(topic, topicConfig);
+                    debeziumTopicTask.start(topic, topicConfig, zkConnector);
                     topicTasks.put(topic, debeziumTopicTask);
                 }
             }
@@ -114,7 +112,7 @@ public class MasterDebeziumService implements IMasterZkService {
 
     private TopicConfig getTopicConfig(String topic) throws Exception {
         String topicConfigStr = zkConnector.getData(String.format("%s/%s", topicPath, topic));
-        return objectMapper.readValue(topicConfigStr, TopicConfig.class);
+        return JsonUtils.readValue(topicConfigStr, TopicConfig.class);
     }
 
     @Override

@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.zookeeper.connector;
+package org.apache.hudi.debezium.config;
 
 public class ZookeeperConfig {
 

@@ -1,6 +1,6 @@
 package org.apache.hudi.debezium.example;
 
-import org.apache.hudi.debezium.kafka.config.DebeziumConfig;
+import org.apache.hudi.debezium.config.DebeziumConfig;
 
 import java.util.Map;
 

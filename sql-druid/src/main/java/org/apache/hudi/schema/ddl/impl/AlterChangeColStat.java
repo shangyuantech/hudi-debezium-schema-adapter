@@ -7,13 +7,13 @@ import org.apache.hudi.schema.ddl.DDLStat;
 
 public class AlterChangeColStat extends DDLStat {
 
-    private final String oldColumnName;
+    private String oldColumnName;
 
-    private final String newColumnName;
+    private String newColumnName;
 
-    private final SQLDataType dataType;
+    private SQLDataType dataType;
 
-    private final SQLExpr defaultValue;
+    private SQLExpr defaultValue;
 
     public AlterChangeColStat(String database, String table, DDLType ddlType,
                               String oldColumnName, String newColumnName, SQLDataType dataType, SQLExpr defaultValue) {
@@ -21,6 +21,22 @@ public class AlterChangeColStat extends DDLStat {
         this.oldColumnName = oldColumnName;
         this.newColumnName = newColumnName;
         this.dataType = dataType;
+        this.defaultValue = defaultValue;
+    }
+
+    public void setOldColumnName(String oldColumnName) {
+        this.oldColumnName = oldColumnName;
+    }
+
+    public void setNewColumnName(String newColumnName) {
+        this.newColumnName = newColumnName;
+    }
+
+    public void setDataType(SQLDataType dataType) {
+        this.dataType = dataType;
+    }
+
+    public void setDefaultValue(SQLExpr defaultValue) {
         this.defaultValue = defaultValue;
     }
 

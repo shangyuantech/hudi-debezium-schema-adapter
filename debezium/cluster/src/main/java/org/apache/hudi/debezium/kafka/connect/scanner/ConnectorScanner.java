@@ -2,8 +2,8 @@ package org.apache.hudi.debezium.kafka.connect.scanner;
 
 import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.exception.DebeziumConfigBuilderNotFoundException;
-import org.apache.hudi.debezium.kafka.config.DebeziumConfig;
-import org.apache.hudi.debezium.kafka.config.DebeziumConfigCache;
+import org.apache.hudi.debezium.config.DebeziumConfig;
+import org.apache.hudi.debezium.config.DebeziumConfigCache;
 import org.apache.hudi.debezium.kafka.connect.DebeziumConfigBuilderPrototype;
 import org.apache.hudi.debezium.kafka.connect.IDebeziumConfigBuilder;
 import org.apache.hudi.debezium.kafka.util.KafkaConnectUtils;

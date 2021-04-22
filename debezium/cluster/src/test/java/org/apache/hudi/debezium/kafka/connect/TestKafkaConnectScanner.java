@@ -3,7 +3,7 @@ package org.apache.hudi.debezium.kafka.connect;
 import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.example.TestDebeziumConfigBuilder;
-import org.apache.hudi.debezium.kafka.config.DebeziumConfigCache;
+import org.apache.hudi.debezium.config.DebeziumConfigCache;
 import org.apache.hudi.debezium.kafka.connect.scanner.ConnectorScannerTask;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;

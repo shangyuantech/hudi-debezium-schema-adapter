@@ -6,6 +6,10 @@ import org.apache.hudi.debezium.zookeeper.slave.SlaveZkService;
 
 public class MySQLSlaveZkService extends SlaveZkService {
 
+    public MySQLSlaveZkService(String listenPath) {
+        super(listenPath);
+    }
+
     @Override
     protected void addTrigger(CuratorFramework client, TreeCacheEvent event) {
 
