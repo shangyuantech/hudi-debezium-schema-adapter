@@ -24,6 +24,11 @@ public class ZookeeperConnector {
         this.config = config;
     }
 
+    public ZookeeperConnector(ZookeeperConfig config, boolean startClient) {
+        this.config = config;
+        if (startClient) createZkClient();
+    }
+
     public CuratorFramework createZkClient() {
         if (client != null) {
             return client;

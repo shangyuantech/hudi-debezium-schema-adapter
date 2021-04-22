@@ -109,7 +109,7 @@ public class ConsumerService extends Thread {
         //  register sub task, this describe actual tasks
         for (SubTask subTask : task.getTasks()) {
             String subTaskPath = String.format("%s/%s", mainTaskPath, subTask.getName());
-            registerNode(subTaskPath, subTask.getSql());
+            registerNode(subTaskPath, JsonUtils.writeValueAsString(subTask));
         }
     }
 

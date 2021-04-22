@@ -17,19 +17,32 @@ import org.apache.hudi.debezium.kafka.util.AvroUtils;
 import org.apache.hudi.debezium.mysql.data.MySQLDebeziumConfig;
 import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.data.MySQLTask;
+import org.apache.hudi.debezium.mysql.data.PartitionMethod;
 import org.apache.hudi.debezium.mysql.impl.connect.MySQLDebeziumConfigBuilder;
+import org.apache.hudi.debezium.mysql.impl.jdbc.JDBCUtils;
+import org.apache.hudi.debezium.mysql.impl.jdbc.Partition;
 import org.apache.hudi.debezium.util.JsonUtils;
+import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.debezium.zookeeper.task.SubTask;
 import org.apache.hudi.debezium.zookeeper.task.Task;
+import org.apache.hudi.debezium.zookeeper.util.TaskUtils;
+import org.apache.hudi.schema.common.DDLType;
 import org.apache.hudi.schema.ddl.DDLStat;
+import org.apache.hudi.schema.ddl.impl.AlterAddColStat;
+import org.apache.hudi.schema.ddl.impl.AlterChangeColStat;
 import org.apache.hudi.schema.parser.DefaultSchemaParser;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.apache.hudi.schema.common.DDLType.ALTER_ADD_COL;
+import static org.apache.hudi.schema.common.DDLType.ALTER_CHANGE_COL;
 
 public class MySQLRecordService implements IRecordService {
 
@@ -70,6 +83,11 @@ public class MySQLRecordService implements IRecordService {
         return schemaChange;
     }
 
+    private final static List<DDLType> SUPPORTED_DDL = new ArrayList<DDLType>() {{
+        add(ALTER_ADD_COL);
+        add(ALTER_CHANGE_COL);
+    }};
+
     @Override
     public Optional<Task<?>> publishTask(SchemaRecord record) throws Exception {
         String kafkaConnectUrl = topicConfig.getKafkaConnectUrl();
@@ -78,7 +96,7 @@ public class MySQLRecordService implements IRecordService {
 
         // check if this sql need to publish task
         DDLStat ddlStat = schemaParser.getSqlStat(ddl);
-        if (ddlStat.getDdlType() != ALTER_ADD_COL) {
+        if (!SUPPORTED_DDL.contains(ddlStat.getDdlType())) {
             if (logger.isDebugEnabled()) {
                 logger.debug("[master] no need to publish ddl `{}`", ddl);
                 return Optional.empty();
@@ -103,29 +121,144 @@ public class MySQLRecordService implements IRecordService {
             mysqlConfig = (MySQLDebeziumConfig) debeziumConfig.get();
         }
 
-        // get jdbc link and get table schema
-
         // build task
-        String database = ddlStat.getDatabase();
+        String database = ddlStat.getDatabase() == null ? ((MySQLSchemaChange) record).getDatabaseName() : ddlStat.getDatabase();
         String table = ddlStat.getTable();
-        String taskName = getTaskName(database, table);
-
+        String taskName = TaskUtils.getTaskName(topic, database, table);
         MySQLTask task = new MySQLTask(taskName, mysqlConfig).setDdlType(ddlStat.getDdlType());
-        SubTask subTask = new SubTask(String.format("%s#%s", taskName, "task_1")).setSql("select * from test_table");
-        task.addTask(subTask);
+
+        // get jdbc link and get table schema
+        List<SubTask> subTasks = buildTasks(mysqlConfig, database, ddlStat);
+        task.addSubTasks(subTasks);
 
         if (logger.isDebugEnabled()) {
             logger.debug("[publish] create a debezium task `{}` and subTasks\n{}", taskName, task.getTasks());
         }
-
         return Optional.of(task);
     }
 
-    private String getTaskName(String database, String table) {
-        if (StringUtils.isBlank(database)) {
-            return String.format("%s.%s", topic, table);
-        } else {
-            return String.format("%s.%s.%s", topic, database, table);
+    private List<SubTask> buildTasks(MySQLDebeziumConfig mysqlConfig, String database, DDLStat ddlStat) throws SQLException {
+        String table = ddlStat.getTable();
+        String hostName = mysqlConfig.getHostname();
+        String port = mysqlConfig.getPort();
+        String user = mysqlConfig.getUser();
+        String password = mysqlConfig.getPassword();
+
+        // todo At present, SSL information is not directly configured for the time being.
+        // If necessary, it can be processed in Java environment
+        String databaseSslMode = mysqlConfig.getDatabaseSslMode();
+        boolean ssl = false;
+        switch (databaseSslMode) {
+            case "verify_ca":
+            case "verify_identity":
+                ssl = true;
+                break;
+            case "disabled":
+            case "preferred":
+            case "required":
+            default:
+                break;
         }
+
+        List<SubTask> tasks = new ArrayList<>();
+        List<Partition> partitions = new ArrayList<>();
+        Optional<AlterField> aField = getAlterField(ddlStat);
+
+        // Get table partition
+        try (Connection conn = JDBCUtils.createConnection(hostName, port, user, password, database, ssl)) {
+            partitions.addAll(JDBCUtils.getPartitions(conn, table));
+            if (logger.isDebugEnabled()) {
+                logger.debug("[publish] get table {} partition \n{}", table, partitions);
+            }
+        }
+
+        if (partitions.size() <= 1) {
+            createSingleTask(tasks, database, table, aField, partitions.size());
+        } else {
+            PartitionMethod partitionMethod = partitions.get(0).getPartitionMethod();
+            if (partitionMethod == null || partitionMethod == PartitionMethod.NONE) {
+                createSingleTask(tasks, database, table, aField, partitions.size());
+            } else {
+                // todo For the time being, only support partition method
+                // PartitionMethod subpartitionMethod = partitions.get(0).getSubpartitionMethod();
+                switch(partitionMethod) {
+                    case RANGE:
+                        createPartitionRangeTask(tasks, database, table, ddlStat.getDdlType(), aField, partitions);
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
+
+        return tasks;
+    }
+
+    private void createSingleTask(List<SubTask> tasks, String database, String table,
+                                  Optional<AlterField> aField, Integer size) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("[publish] Table `{}` partition size is {}, consider it a non partitioned table",
+                    table, size);
+        }
+
+        String subTaskName = TaskUtils.getSubTaskName(
+                DDLType.NONE.name(), aField.isPresent() ? aField.get().getFieldsDesc() : "", 0);
+        SubTask subTask = new SubTask(subTaskName).setSql(String.format("select * from %s.%s", database, table));
+        tasks.add(subTask.addAlterField(aField));
+    }
+
+    private void createPartitionRangeTask(List<SubTask> tasks, String database, String table, DDLType ddlType,
+                                          Optional<AlterField> aField, List<Partition> partitions) {
+        String partitionField = partitions.get(0).getPartitionExpression();
+        int row = partitions.size();
+        long before = 0;
+
+        for (int i = 0 ; i < row ; i ++) {
+            Partition partition = partitions.get(i);
+            StringBuilder sql = new StringBuilder();
+            sql.append(String.format("select * from %s.%s where %s",
+                    database, table, partitionField));
+            if (i == 0) {
+                sql.append(" < ")
+                        .append(partition.getPartitionDescription());
+                before = Long.parseLong(partition.getPartitionDescription());
+            } else if (i == row - 1) {
+                sql.append(" >= ").append(before);
+            } else {
+                sql.append(" >= ").append(before);
+                sql.append(" and ")
+                        .append(partitionField)
+                        .append(" < ")
+                        .append(partition.getPartitionDescription());
+                before = Long.parseLong(partition.getPartitionDescription());
+            }
+
+            String subTaskName = TaskUtils.getSubTaskName(
+                    ddlType.name(),
+                    aField.isPresent() ? aField.get().getFieldsDesc() : "",
+                    i);
+            SubTask subTask = new SubTask(subTaskName)
+                    .setPartitionMethod(ddlType.name())
+                    .setSql(sql.toString())
+                    .addPartitionField(partitionField)
+                    .addAlterField(aField);
+            tasks.add(subTask);
+        }
+    }
+
+    private Optional<AlterField> getAlterField(DDLStat ddlStat) {
+        AlterField aField = null;
+        if (ddlStat instanceof AlterAddColStat) {
+            aField = new AlterField();
+            aField.setNewName(((AlterAddColStat) ddlStat).getAddColName());
+            aField.setNewType(((AlterAddColStat) ddlStat).getDataType().getName());
+        } else if (ddlStat instanceof AlterChangeColStat) {
+            aField = new AlterField();
+            aField.setNewName(((AlterChangeColStat) ddlStat).getNewColumnName());
+            aField.setOldName(((AlterChangeColStat) ddlStat).getOldColumnName());
+            aField.setNewType(((AlterChangeColStat) ddlStat).getDataType().getName());
+        }
+
+        return Optional.ofNullable(aField);
     }
 }

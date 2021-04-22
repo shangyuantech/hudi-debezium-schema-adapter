@@ -1,5 +1,8 @@
 package org.apache.hudi.debezium.mysql;
 
+import ch.vorburger.mariadb4j.DB;
+import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import ch.vorburger.mariadb4j.junit.MariaDB4jRule;
 import net.mguenther.kafka.junit.*;
 import org.apache.curator.test.TestingServer;
 import org.apache.hudi.debezium.common.DBType;
@@ -19,6 +22,7 @@ import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 import javax.ws.rs.GET;
@@ -92,6 +96,8 @@ public class TestMySQLClusterService extends JerseyTest {
 
     private EmbeddedKafkaCluster kafka;
 
+    private DB db;
+
     @Before
     public void before() throws Exception {
         // start zookeeper
@@ -106,6 +112,14 @@ public class TestMySQLClusterService extends JerseyTest {
         // start kafka https://mguenther.github.io/kafka-junit/
         kafka = provisionWith(EmbeddedKafkaClusterConfig.useDefaults());
         kafka.start();
+
+        DBConfigurationBuilder configBuilder = DBConfigurationBuilder.newBuilder();
+        configBuilder.setPort(3306);
+        configBuilder.setDataDir("/tmp/mysql/test_database");
+        db = DB.newEmbeddedDB(configBuilder.build());
+        db.start();
+        db.createDB("test_database");
+        db.source("sql/test_table.sql", "test_database");
     }
 
     private void deleteDir(File dir) {
@@ -155,7 +169,7 @@ public class TestMySQLClusterService extends JerseyTest {
         master.startMaster();
 
         // -------------------- start slave --------------------
-        SlaveService slave = new SlaveService(new ZookeeperConnector(zkConfig),
+        SlaveService slave = new SlaveService(new ZookeeperConnector(zkConfig, true),
                 new MySQLSlaveZkService(masterDebeziumService.getTopicPath()));
         slave.startSlave();
 

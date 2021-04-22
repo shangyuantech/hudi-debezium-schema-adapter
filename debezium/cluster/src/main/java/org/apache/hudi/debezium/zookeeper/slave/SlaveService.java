@@ -36,9 +36,10 @@ public class SlaveService {
         // create a slave node to let us know have a slave
         zkConnector.createNode(slavePath, null, EPHEMERAL);
 
-        TreeCache.Builder builder = TreeCache.newBuilder(zkConnector.getClient(), topicPath);
-        builder.setMaxDepth(4);
-        TreeCache treeCache = builder.build();
+        TreeCache treeCache = TreeCache
+                .newBuilder(zkConnector.getClient(), topicPath)
+                .setMaxDepth(4)
+                .build();
         //TreeCache treeCache = new TreeCache(zkConnector.getClient(), topicPath);
         logger.info("[slave] start slave service to receive task in {} ...", topicPath);
 

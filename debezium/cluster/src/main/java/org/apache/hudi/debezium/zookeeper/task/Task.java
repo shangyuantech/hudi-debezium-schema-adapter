@@ -45,8 +45,13 @@ public class Task<T extends DebeziumConfig> {
         return tasks;
     }
 
-    public Task addTask(SubTask task) {
+    public Task<T> addTask(SubTask task) {
         tasks.add(task);
+        return this;
+    }
+
+    public Task<T> addSubTasks(List<SubTask> subTasks) {
+        this.tasks.addAll(subTasks);
         return this;
     }
 

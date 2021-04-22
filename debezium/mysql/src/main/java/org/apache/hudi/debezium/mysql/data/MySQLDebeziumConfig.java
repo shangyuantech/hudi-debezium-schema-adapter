@@ -18,7 +18,8 @@ public class MySQLDebeziumConfig extends DebeziumConfig {
     private String port = "3306";
     private String user = "";
     private String password = "";
-    private String databaseSslMode = "disabled";
+    private final static String DEFAULT_DATABASE_SSL_MODE = "disabled";
+    private String databaseSslMode = DEFAULT_DATABASE_SSL_MODE;
     private String timePrecisionMode = "";
 
     public MySQLDebeziumConfig() {
@@ -49,7 +50,7 @@ public class MySQLDebeziumConfig extends DebeziumConfig {
     }
 
     public String getDatabaseSslMode() {
-        return databaseSslMode;
+        return databaseSslMode == null ? DEFAULT_DATABASE_SSL_MODE : databaseSslMode;
     }
 
     public MySQLDebeziumConfig setHostname(String hostname) {
@@ -103,7 +104,7 @@ public class MySQLDebeziumConfig extends DebeziumConfig {
                     StringUtils.equals(this.port, ((MySQLDebeziumConfig) o).getPort()) &&
                     StringUtils.equals(this.user, ((MySQLDebeziumConfig) o).getUser()) &&
                     StringUtils.equals(this.password, ((MySQLDebeziumConfig) o).getPassword()) &&
-                    StringUtils.equals(this.databaseSslMode, ((MySQLDebeziumConfig) o).getDatabaseSslMode()) &&
+                    StringUtils.equals(getDatabaseSslMode(), ((MySQLDebeziumConfig) o).getDatabaseSslMode()) &&
                     StringUtils.equals(this.timePrecisionMode, ((MySQLDebeziumConfig) o).getTimePrecisionMode()) &&
                     StringUtils.equals(this.getServerName(), ((MySQLDebeziumConfig) o).getServerName());
         }
