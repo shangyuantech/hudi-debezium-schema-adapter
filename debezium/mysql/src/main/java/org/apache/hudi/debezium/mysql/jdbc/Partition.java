@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.mysql.impl.jdbc;
+package org.apache.hudi.debezium.mysql.jdbc;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.hudi.debezium.mysql.data.PartitionMethod;

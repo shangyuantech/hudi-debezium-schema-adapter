@@ -2,7 +2,6 @@ package org.apache.hudi.debezium.mysql.impl.master;
 
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.common.exception.DebeziumConfigNotFoundException;
@@ -19,8 +18,8 @@ import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.data.MySQLTask;
 import org.apache.hudi.debezium.mysql.data.PartitionMethod;
 import org.apache.hudi.debezium.mysql.impl.connect.MySQLDebeziumConfigBuilder;
-import org.apache.hudi.debezium.mysql.impl.jdbc.JDBCUtils;
-import org.apache.hudi.debezium.mysql.impl.jdbc.Partition;
+import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
+import org.apache.hudi.debezium.mysql.jdbc.Partition;
 import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.debezium.zookeeper.task.SubTask;
@@ -52,14 +51,11 @@ public class MySQLRecordService implements IRecordService {
 
     private final TopicConfig topicConfig;
 
-    private final KafkaConfig kafkaConfig;
-
     private final Class<?> valueDesClass;
 
-    public MySQLRecordService(String topic, TopicConfig topicConfig, KafkaConfig kafkaConfig, Class<?> valueDesClass) {
+    public MySQLRecordService(String topic, TopicConfig topicConfig,Class<?> valueDesClass) {
         this.topic = topic;
         this.topicConfig = topicConfig;
-        this.kafkaConfig = kafkaConfig;
         this.valueDesClass = valueDesClass;
     }
 
@@ -185,7 +181,16 @@ public class MySQLRecordService implements IRecordService {
                     case RANGE:
                         createPartitionRangeTask(tasks, database, table, ddlStat.getDdlType(), aField, partitions);
                         break;
+                    case LIST:
+                        createPartitionListTask(tasks, database, table, ddlStat.getDdlType(), aField, partitions);
+                        break;
+                    case HASH:
+                        createPartitionHashTask(tasks, database, table, ddlStat.getDdlType(), aField, partitions);
+                        break;
+                    case KEY:
+                        logger.warn("[publish] can not support key partition now, use single task ...");
                     default:
+                        createSingleTask(tasks, database, table, aField, partitions.size());
                         break;
                 }
             }
@@ -240,6 +245,56 @@ public class MySQLRecordService implements IRecordService {
             SubTask subTask = new SubTask(subTaskName)
                     .setPartitionMethod(ddlType.name())
                     .setSql(sql.toString())
+                    .addPartitionField(partitionField)
+                    .addAlterField(aField);
+            tasks.add(subTask);
+        }
+    }
+
+    private void createPartitionListTask(List<SubTask> tasks, String database, String table, DDLType ddlType,
+                                          Optional<AlterField> aField, List<Partition> partitions) {
+        String partitionField = partitions.get(0).getPartitionExpression();
+        int row = partitions.size();
+
+        for (int i = 0 ; i < row ; i ++) {
+            Partition partition = partitions.get(i);
+            StringBuilder sql = new StringBuilder();
+            sql.append(String.format("select * from %s.%s where %s in ('",
+                    database, table, partitionField));
+
+            String[] partitionDescriptions = partition.getPartitionDescription().split(",");
+            sql.append(String.join("' , '", partitionDescriptions)).append("')");
+
+            String subTaskName = TaskUtils.getSubTaskName(
+                    ddlType.name(),
+                    aField.isPresent() ? aField.get().getFieldsDesc() : "",
+                    i);
+            SubTask subTask = new SubTask(subTaskName)
+                    .setPartitionMethod(ddlType.name())
+                    .setSql(sql.toString())
+                    .addPartitionField(partitionField)
+                    .addAlterField(aField);
+            tasks.add(subTask);
+        }
+    }
+
+    private void createPartitionHashTask(List<SubTask> tasks, String database, String table, DDLType ddlType,
+                                         Optional<AlterField> aField, List<Partition> partitions) {
+        String partitionField = partitions.get(0).getPartitionExpression();
+        int row = partitions.size();
+
+        for (int i = 0 ; i < row ; i ++) {
+            Partition partition = partitions.get(i);
+            String sql = String.format("select * from %s.%s where mod (%s, %s) = %s",
+                    database, table, partition.getPartitionExpression(), row, i);
+
+            String subTaskName = TaskUtils.getSubTaskName(
+                    ddlType.name(),
+                    aField.isPresent() ? aField.get().getFieldsDesc() : "",
+                    i);
+            SubTask subTask = new SubTask(subTaskName)
+                    .setPartitionMethod(ddlType.name())
+                    .setSql(sql)
                     .addPartitionField(partitionField)
                     .addAlterField(aField);
             tasks.add(subTask);

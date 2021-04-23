@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.mysql.impl.jdbc;
+package org.apache.hudi.debezium.mysql.jdbc;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
 import org.apache.commons.dbutils.QueryRunner;
@@ -36,7 +36,7 @@ public class JDBCUtils {
                     "partition_description " +
             "from information_schema.partitions " +
             "where table_schema = schema() " +
-            "and table_name = ?";
+            "and table_name = ? order by partition_ordinal_position";
 
     public static List<Partition> getPartitions(Connection connection, String tableName) throws SQLException {
          return JsonUtils.transformList(

@@ -22,8 +22,9 @@ public class TopicConfig {
         return dbType;
     }
 
-    public void setDbType(DBType dbType) {
+    public TopicConfig setDbType(DBType dbType) {
         this.dbType = dbType;
+        return this;
     }
 
     public Map<String, String> getKafkaConfig() {
@@ -34,13 +35,15 @@ public class TopicConfig {
         return kafkaConnectUrl;
     }
 
-    public void setKafkaConnectUrl(String kafkaConnectUrl) {
+    public TopicConfig setKafkaConnectUrl(String kafkaConnectUrl) {
         this.kafkaConnectUrl = kafkaConnectUrl;
+        return this;
     }
 
-    public void addKafkaConfig(String key, String value) {
+    public TopicConfig addKafkaConfig(String key, String value) {
         if (kafkaConfig == null) kafkaConfig = new HashMap<>();
         this.kafkaConfig.put(key, value);
+        return this;
     }
 
     public void addKafkaConfig(Map<String, String> properties) {

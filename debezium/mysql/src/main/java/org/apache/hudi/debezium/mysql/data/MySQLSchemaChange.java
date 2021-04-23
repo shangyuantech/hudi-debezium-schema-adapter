@@ -45,8 +45,9 @@ public class MySQLSchemaChange implements SchemaRecord {
             return server;
         }
 
-        public void setServer(String server) {
+        public Source setServer(String server) {
             this.server = server;
+            return this;
         }
     }
 

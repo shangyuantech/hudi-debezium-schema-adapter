@@ -31,7 +31,7 @@ public class MySQLDebeziumTopicTask implements IDebeziumTopicTask {
         KafkaConfig kafkaConfig = new KafkaConfig(topicConfig.getKafkaConfigProperties());
         Class<?> valueDesClass = Class.forName(kafkaConfig.getOrDefault(
                 ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, defaultDesClass));
-        MySQLRecordService recordService = new MySQLRecordService(topic, topicConfig, kafkaConfig, valueDesClass);
+        MySQLRecordService recordService = new MySQLRecordService(topic, topicConfig, valueDesClass);
 
         consumer = new ConsumerService(topic, kafkaConfig, zkConnector, recordService);
         consumer.start();

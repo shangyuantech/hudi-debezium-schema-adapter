@@ -2,8 +2,8 @@ package org.apache.hudi.debezium.mysql;
 
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import ch.vorburger.mariadb4j.junit.MariaDB4jRule;
-import org.apache.hudi.debezium.mysql.impl.jdbc.JDBCUtils;
-import org.apache.hudi.debezium.mysql.impl.jdbc.Partition;
+import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
+import org.apache.hudi.debezium.mysql.jdbc.Partition;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
