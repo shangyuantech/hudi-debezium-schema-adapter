@@ -1,5 +1,8 @@
 package org.apache.hudi.debezium.config;
 
+import org.apache.hudi.debezium.common.TopicConfig;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
@@ -26,6 +29,11 @@ public class KafkaConfig {
                     .replaceAll("___", "_");
             props.put(propsKey, entry.getValue());
         });
+    }
+
+    public KafkaConfig addKafkaConfig(String key, String value) {
+        this.props.put(key, value);
+        return this;
     }
 
     public Properties getProps() {

@@ -1,8 +1,7 @@
-package org.apache.hudi.debezium.mysql;
+package org.apache.hudi.debezium.mysql.cluster;
 
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
-import ch.vorburger.mariadb4j.junit.MariaDB4jRule;
 import net.mguenther.kafka.junit.*;
 import org.apache.curator.test.TestingServer;
 import org.apache.hudi.debezium.common.DBType;
@@ -13,16 +12,17 @@ import org.apache.hudi.debezium.kafka.master.task.DebeziumTopicTaskPrototype;
 import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.impl.connect.MySQLDebeziumConfigBuilder;
 import org.apache.hudi.debezium.mysql.impl.master.MySQLDebeziumTopicTask;
-import org.apache.hudi.debezium.mysql.impl.slave.MySQLSlaveZkService;
+import org.apache.hudi.debezium.mysql.impl.slave.MySQLSlaveTask;
 import org.apache.hudi.debezium.config.ZookeeperConfig;
 import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.master.MasterService;
 import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
+import org.apache.hudi.debezium.zookeeper.slave.SlaveZkService;
+import org.apache.hudi.debezium.zookeeper.slave.task.SlaveTaskPrototype;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 
 import javax.ws.rs.GET;
@@ -169,8 +169,10 @@ public class TestMySQLClusterService extends JerseyTest {
         master.startMaster();
 
         // -------------------- start slave --------------------
+        SlaveTaskPrototype slaveTaskPrototype = new SlaveTaskPrototype();
+        slaveTaskPrototype.addSlaveTask(DBType.MySQL, new MySQLSlaveTask());
         SlaveService slave = new SlaveService(new ZookeeperConnector(zkConfig, true),
-                new MySQLSlaveZkService(masterDebeziumService.getTopicPath()));
+                new SlaveZkService(masterDebeziumService.getTopicPath(), slaveTaskPrototype));
         slave.startSlave();
 
         // send topic a data

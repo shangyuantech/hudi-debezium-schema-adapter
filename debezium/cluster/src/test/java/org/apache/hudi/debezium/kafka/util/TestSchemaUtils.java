@@ -1,11 +1,13 @@
 package org.apache.hudi.debezium.kafka.util;
 
+import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericRecord;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hudi.debezium.example.Employee;
 
@@ -43,6 +45,12 @@ public class TestSchemaUtils {
         GenericRecord genericRecord = AvroUtils.transformObjectToAvro(employee, Employee.class);
         Assert.assertEquals(genericRecord.get("name").toString(), employee.getName());
         Assert.assertEquals(genericRecord.get("age"), employee.getAge());
+    }
+
+    @Test
+    public void testReadAvroSchemaFile() throws IOException {
+        Schema avroSchema = AvroUtils.getAvroSchemaByFile("src/test/resources/avro/test-value.avro");
+        System.out.println(avroSchema.toString(true));
     }
 
 }

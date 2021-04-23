@@ -18,6 +18,10 @@ public class SubTask {
 
     private List<AlterField> alterFields = new ArrayList<>();
 
+    private String database;
+
+    private String table;
+
     public SubTask() {
     }
 
@@ -77,11 +81,34 @@ public class SubTask {
         return this;
     }
 
+    public String getDatabase() {
+        return database;
+    }
+
+    public SubTask setDatabase(String database) {
+        this.database = database;
+        return this;
+    }
+
+    public String getTable() {
+        return table;
+    }
+
+    public SubTask setTable(String table) {
+        this.table = table;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "SubTask{" +
                 "name='" + name + '\'' +
                 ", sql='" + sql + '\'' +
+                ", partitionMethod='" + partitionMethod + '\'' +
+                ", partitionFields=" + partitionFields +
+                ", alterFields=" + alterFields +
+                ", database='" + database + '\'' +
+                ", table='" + table + '\'' +
                 '}';
     }
 }

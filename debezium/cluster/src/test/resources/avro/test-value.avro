@@ -1,0 +1,175 @@
+{
+  "connect.name": "cluster_mysql_test.test_database.test.Envelope",
+  "fields": [
+    {
+      "default": null,
+      "name": "before",
+      "type": [
+        "null",
+        {
+          "connect.name": "cluster_mysql_test.test_database.test.Value",
+          "fields": [
+            {
+              "name": "id",
+              "type": "int"
+            },
+            {
+              "default": null,
+              "name": "name",
+              "type": [
+                "null",
+                "string"
+              ]
+            }
+          ],
+          "name": "Value",
+          "type": "record"
+        }
+      ]
+    },
+    {
+      "default": null,
+      "name": "after",
+      "type": [
+        "null",
+        "Value"
+      ]
+    },
+    {
+      "name": "source",
+      "type": {
+        "connect.name": "io.debezium.connector.mysql.Source",
+        "fields": [
+          {
+            "name": "version",
+            "type": "string"
+          },
+          {
+            "name": "connector",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "ts_ms",
+            "type": "long"
+          },
+          {
+            "default": "false",
+            "name": "snapshot",
+            "type": [
+              {
+                "connect.default": "false",
+                "connect.name": "io.debezium.data.Enum",
+                "connect.parameters": {
+                  "allowed": "true,last,false"
+                },
+                "connect.version": 1,
+                "type": "string"
+              },
+              "null"
+            ]
+          },
+          {
+            "name": "db",
+            "type": "string"
+          },
+          {
+            "default": null,
+            "name": "table",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          {
+            "name": "server_id",
+            "type": "long"
+          },
+          {
+            "default": null,
+            "name": "gtid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          {
+            "name": "file",
+            "type": "string"
+          },
+          {
+            "name": "pos",
+            "type": "long"
+          },
+          {
+            "name": "row",
+            "type": "int"
+          },
+          {
+            "default": null,
+            "name": "thread",
+            "type": [
+              "null",
+              "long"
+            ]
+          },
+          {
+            "default": null,
+            "name": "query",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        ],
+        "name": "Source",
+        "namespace": "io.debezium.connector.mysql",
+        "type": "record"
+      }
+    },
+    {
+      "name": "op",
+      "type": "string"
+    },
+    {
+      "default": null,
+      "name": "ts_ms",
+      "type": [
+        "null",
+        "long"
+      ]
+    },
+    {
+      "default": null,
+      "name": "transaction",
+      "type": [
+        "null",
+        {
+          "fields": [
+            {
+              "name": "id",
+              "type": "string"
+            },
+            {
+              "name": "total_order",
+              "type": "long"
+            },
+            {
+              "name": "data_collection_order",
+              "type": "long"
+            }
+          ],
+          "name": "ConnectDefault",
+          "namespace": "io.confluent.connect.avro",
+          "type": "record"
+        }
+      ]
+    }
+  ],
+  "name": "Envelope",
+  "namespace": "cluster_mysql_test.test_database.test",
+  "type": "record"
+}

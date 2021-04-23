@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "Key",
+  "namespace": "cluster_mysql_bigdata.bigdata.test",
+  "fields": [
+    {
+      "name": "id",
+      "type": "int"
+    }
+  ],
+  "connect.name": "cluster_mysql_bigdata.bigdata.test.Key"
+}

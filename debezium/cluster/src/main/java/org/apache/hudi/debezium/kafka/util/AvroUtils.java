@@ -19,6 +19,7 @@ import org.apache.avro.specific.SpecificDatumWriter;
 
 import javax.validation.constraints.NotNull;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 
 /**
@@ -63,6 +64,12 @@ public class AvroUtils {
         mapper.acceptJsonFormatVisitor(clazz, gen);
         AvroSchema schemaWrapper = gen.getGeneratedSchema();
         return schemaWrapper.getAvroSchema();
+    }
+
+    public static Schema getAvroSchemaByFile(String fileName) throws IOException {
+        File schemaFile = new File(fileName);
+        Schema.Parser parser = new Schema.Parser();
+        return parser.parse(schemaFile);
     }
 
 }

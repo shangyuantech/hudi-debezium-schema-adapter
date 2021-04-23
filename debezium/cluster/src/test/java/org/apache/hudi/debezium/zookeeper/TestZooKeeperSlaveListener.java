@@ -2,11 +2,13 @@ package org.apache.hudi.debezium.zookeeper;
 
 
 import org.apache.curator.test.TestingServer;
+import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.config.ZookeeperConfig;
-import org.apache.hudi.debezium.example.TestSlaveZkService;
+import org.apache.hudi.debezium.example.TestSlaveTask;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
-import org.apache.hudi.debezium.zookeeper.util.ZooKeeperUtils;
+import org.apache.hudi.debezium.zookeeper.slave.SlaveZkService;
+import org.apache.hudi.debezium.zookeeper.slave.task.SlaveTaskPrototype;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +49,9 @@ public class TestZooKeeperSlaveListener {
         String listenPath = "/debezium/topics";
         zkConnector.createNode(listenPath + "/cluster_mysql_test");
 
-        SlaveService slave = new SlaveService(zkConnector, new TestSlaveZkService(listenPath));
+        SlaveTaskPrototype slaveTaskPrototype = new SlaveTaskPrototype();
+        slaveTaskPrototype.addSlaveTask(DBType.MySQL, new TestSlaveTask());
+        SlaveService slave = new SlaveService(zkConnector, new SlaveZkService(listenPath, slaveTaskPrototype));
         slave.startSlave();
 
         Thread.sleep(TimeUnit.SECONDS.toMillis(2));

@@ -74,7 +74,9 @@ public class MySQLDebeziumConfig extends DebeziumConfig {
     }
 
     public MySQLDebeziumConfig setDatabaseSslMode(String databaseSslMode) {
-        this.databaseSslMode = databaseSslMode;
+        if (StringUtils.isNotBlank(databaseSslMode))
+            this.databaseSslMode = databaseSslMode;
+        else this.databaseSslMode = DEFAULT_DATABASE_SSL_MODE;
         return this;
     }
 

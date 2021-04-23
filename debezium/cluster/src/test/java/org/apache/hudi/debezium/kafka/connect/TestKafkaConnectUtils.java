@@ -1,5 +1,7 @@
 package org.apache.hudi.debezium.kafka.connect;
 
+import org.apache.avro.Schema;
+import org.apache.hudi.debezium.kafka.util.AvroUtils;
 import org.apache.hudi.debezium.kafka.util.KafkaConnectUtils;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
@@ -96,9 +98,20 @@ public class TestKafkaConnectUtils extends JerseyTest {
         }
     }
 
+    @Path("subjects")
+    public static class SchemaRegistryResource {
+
+        @GET
+        @Path("/cluster_mysql_test.test_database.test-value/versions/latest")
+        public String getSchema() throws IOException {
+            Schema avroSchema = AvroUtils.getAvroSchemaByFile("src/test/resources/avro/test-value.avro");
+            return avroSchema.toString(true);
+        }
+    }
+
     @Override
     protected Application configure() {
-        return new ResourceConfig(ConnectorResource.class);
+        return new ResourceConfig(ConnectorResource.class, SchemaRegistryResource.class);
     }
 
     private final String kafkaConnectUrl = "http://localhost:9998";
@@ -121,6 +134,13 @@ public class TestKafkaConnectUtils extends JerseyTest {
         Map<String, String> connectorConfig = KafkaConnectUtils.getConnectorConfig(kafkaConnectUrl,
                 "cluster_mysql_test-test_database-test_table1");
         assertEquals(connectorConfig.get("database.server.name"), "cluster_mysql_test");
+    }
+
+    @Test
+    public void testSchemaRegistry() throws IOException {
+        Schema schema = KafkaConnectUtils.getAvroSchema("http://localhost:9998",
+                "cluster_mysql_test.test_database.test-value");
+        System.out.println(schema.toString(true));
     }
 
 }

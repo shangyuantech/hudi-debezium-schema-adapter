@@ -2,6 +2,7 @@ package org.apache.hudi.debezium.mysql.jdbc;
 
 import com.mysql.cj.jdbc.MysqlDataSource;
 import org.apache.commons.dbutils.QueryRunner;
+import org.apache.commons.dbutils.handlers.MapHandler;
 import org.apache.commons.dbutils.handlers.MapListHandler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.util.JsonUtils;
@@ -27,6 +28,23 @@ public class JDBCUtils {
         mysqlDS.setRequireSSL(false);
 
         return mysqlDS.getConnection();
+    }
+
+    public static boolean checkSsl(String databaseSslMode) {
+        boolean ssl = false;
+        switch (databaseSslMode) {
+            case "verify_ca":
+            case "verify_identity":
+                ssl = true;
+                break;
+            case "disabled":
+            case "preferred":
+            case "required":
+            default:
+                break;
+        }
+
+        return ssl;
     }
 
     private static final String SQL_PARTITION =

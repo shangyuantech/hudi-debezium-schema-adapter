@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.mysql;
+package org.apache.hudi.debezium.mysql.cluster;
 
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import ch.vorburger.mariadb4j.junit.MariaDB4jRule;
@@ -10,10 +10,10 @@ import com.alibaba.druid.sql.ast.expr.SQLIntegerExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlSchemaStatVisitor;
 import com.alibaba.druid.util.JdbcConstants;
 import org.apache.hudi.debezium.common.DBType;
 import org.apache.hudi.debezium.common.TopicConfig;
+import org.apache.hudi.debezium.mysql.cluster.TestMySQLClusterService;
 import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.impl.master.MySQLRecordService;
 import org.apache.hudi.debezium.zookeeper.task.Task;
@@ -34,7 +34,6 @@ import java.util.Optional;
 import static org.apache.kafka.clients.CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG;
 
 public class TestSchemaRecordTask extends JerseyTest {
-
 
     private final static String topic = "cluster_mysql_test_database";
 

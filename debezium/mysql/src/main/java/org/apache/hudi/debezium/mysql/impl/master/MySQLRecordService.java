@@ -53,7 +53,7 @@ public class MySQLRecordService implements IRecordService {
 
     private final Class<?> valueDesClass;
 
-    public MySQLRecordService(String topic, TopicConfig topicConfig,Class<?> valueDesClass) {
+    public MySQLRecordService(String topic, TopicConfig topicConfig, Class<?> valueDesClass) {
         this.topic = topic;
         this.topicConfig = topicConfig;
         this.valueDesClass = valueDesClass;
@@ -143,18 +143,7 @@ public class MySQLRecordService implements IRecordService {
         // todo At present, SSL information is not directly configured for the time being.
         // If necessary, it can be processed in Java environment
         String databaseSslMode = mysqlConfig.getDatabaseSslMode();
-        boolean ssl = false;
-        switch (databaseSslMode) {
-            case "verify_ca":
-            case "verify_identity":
-                ssl = true;
-                break;
-            case "disabled":
-            case "preferred":
-            case "required":
-            default:
-                break;
-        }
+        boolean ssl = JDBCUtils.checkSsl(databaseSslMode);
 
         List<SubTask> tasks = new ArrayList<>();
         List<Partition> partitions = new ArrayList<>();
@@ -208,7 +197,10 @@ public class MySQLRecordService implements IRecordService {
 
         String subTaskName = TaskUtils.getSubTaskName(
                 DDLType.NONE.name(), aField.isPresent() ? aField.get().getFieldsDesc() : "", 0);
-        SubTask subTask = new SubTask(subTaskName).setSql(String.format("select * from %s.%s", database, table));
+        SubTask subTask = new SubTask(subTaskName)
+                .setSql(String.format("select * from %s.%s", database, table))
+                .setDatabase(database)
+                .setTable(table);
         tasks.add(subTask.addAlterField(aField));
     }
 
@@ -246,7 +238,9 @@ public class MySQLRecordService implements IRecordService {
                     .setPartitionMethod(ddlType.name())
                     .setSql(sql.toString())
                     .addPartitionField(partitionField)
-                    .addAlterField(aField);
+                    .addAlterField(aField)
+                    .setDatabase(database)
+                    .setTable(table);
             tasks.add(subTask);
         }
     }
@@ -273,7 +267,9 @@ public class MySQLRecordService implements IRecordService {
                     .setPartitionMethod(ddlType.name())
                     .setSql(sql.toString())
                     .addPartitionField(partitionField)
-                    .addAlterField(aField);
+                    .addAlterField(aField)
+                    .setDatabase(database)
+                    .setTable(table);
             tasks.add(subTask);
         }
     }
@@ -296,7 +292,9 @@ public class MySQLRecordService implements IRecordService {
                     .setPartitionMethod(ddlType.name())
                     .setSql(sql)
                     .addPartitionField(partitionField)
-                    .addAlterField(aField);
+                    .addAlterField(aField)
+                    .setDatabase(database)
+                    .setTable(table);
             tasks.add(subTask);
         }
     }
