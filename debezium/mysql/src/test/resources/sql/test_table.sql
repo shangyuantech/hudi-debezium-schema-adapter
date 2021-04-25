@@ -13,6 +13,14 @@ create table if not exists test_table
         partition p3 values less than maxvalue
         );
 
+delete from test_table;
+
+insert into test_table values('001', 'mike1', 130, '1989-08-04', 10000);
+insert into test_table values('002', 'mike2', 131, '1990-08-04', 11000);
+insert into test_table values('003', 'mike3', 132, '1991-08-04', 12000);
+insert into test_table values('004', 'mike4', 133, '1992-08-04', 13000);
+
+commit;
 
 create table if not exists test_table_partition_list
 (
