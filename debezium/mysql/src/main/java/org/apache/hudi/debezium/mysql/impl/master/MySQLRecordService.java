@@ -235,7 +235,7 @@ public class MySQLRecordService implements IRecordService {
                     aField.isPresent() ? aField.get().getFieldsDesc() : "",
                     i);
             SubTask subTask = new SubTask(subTaskName)
-                    .setPartitionMethod(ddlType.name())
+                    .setPartitionMethod(PartitionMethod.RANGE.name())
                     .setSql(sql.toString())
                     .addPartitionField(partitionField)
                     .addAlterField(aField)
@@ -264,7 +264,7 @@ public class MySQLRecordService implements IRecordService {
                     aField.isPresent() ? aField.get().getFieldsDesc() : "",
                     i);
             SubTask subTask = new SubTask(subTaskName)
-                    .setPartitionMethod(ddlType.name())
+                    .setPartitionMethod(PartitionMethod.LIST.name())
                     .setSql(sql.toString())
                     .addPartitionField(partitionField)
                     .addAlterField(aField)
@@ -289,7 +289,7 @@ public class MySQLRecordService implements IRecordService {
                     aField.isPresent() ? aField.get().getFieldsDesc() : "",
                     i);
             SubTask subTask = new SubTask(subTaskName)
-                    .setPartitionMethod(ddlType.name())
+                    .setPartitionMethod(PartitionMethod.HASH.name())
                     .setSql(sql)
                     .addPartitionField(partitionField)
                     .addAlterField(aField)

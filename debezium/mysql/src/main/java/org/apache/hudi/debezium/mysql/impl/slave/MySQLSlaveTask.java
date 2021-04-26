@@ -6,8 +6,6 @@ import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.hudi.debezium.common.TopicConfig;
 import org.apache.hudi.debezium.config.KafkaConfig;
 import org.apache.hudi.debezium.kafka.producer.ChangeDataProducer;
-import org.apache.hudi.debezium.kafka.producer.record.RecordConverter;
-import org.apache.hudi.debezium.kafka.producer.record.RecordConverterFactory;
 import org.apache.hudi.debezium.mysql.data.MySQLDebeziumConfig;
 import org.apache.hudi.debezium.mysql.data.MySQLTask;
 import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
@@ -29,9 +27,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.hudi.debezium.kafka.producer.record.RecordConverterFactory.Type.KEY;
-import static org.apache.hudi.debezium.kafka.producer.record.RecordConverterFactory.Type.VALUE;
 
 public class MySQLSlaveTask implements ISlaveTask {
 
@@ -83,48 +78,5 @@ public class MySQLSlaveTask implements ISlaveTask {
         String password = mysqlConfig.getPassword();
         String databaseSslMode = mysqlConfig.getDatabaseSslMode();
 
-        RecordConverter keyConverter = RecordConverterFactory.getValueConverter(
-                kafkaConfig, KEY, topicName, database, table);
-        RecordConverter valueConverter = RecordConverterFactory.getValueConverter(
-                kafkaConfig, VALUE, topicName, database, table);
-        ChangeDataProducer<Object, Object> consumer = new ChangeDataProducer<Object, Object>(kafkaConfig,
-                keyConverter.getSerializer(), valueConverter.getSerializer());
-
-        // get connection and pull data
-        try (Connection conn = JDBCUtils.createConnection(hostName, port, user, password, database,
-                JDBCUtils.checkSsl(databaseSslMode));
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(subTask.getSql())
-             ) {
-
-            ResultSetMetaData rsmd = rs.getMetaData();
-            Map<String, String> typeDef = new HashMap<>();
-            for (int i = 1; i <= rsmd.getColumnCount() ; i ++) {
-                typeDef.put(rsmd.getColumnName(i), rsmd.getColumnTypeName(i));
-            }
-
-            // loop 1000 rows a batch
-            List<ProducerRecord<Object, Object>> producerRecords = new ArrayList<>();
-            int count = 0;
-            while (rs.next()) {
-                Map<String, Object> rowData = new HashMap<>();
-                for (int i = 1; i <= rsmd.getColumnCount() ; i ++) {
-                    rowData.put(rsmd.getColumnName(i), rs.getObject(i));
-                }
-                ProducerRecord<Object, Object> record = new ProducerRecord<>(mysqlTask.getName(),
-                        valueConverter.getKey(""), valueConverter.getValue(rowData, typeDef));
-                producerRecords.add(record);
-                count ++;
-                if (count == 1000) {
-                    consumer.batchProduce(producerRecords);
-                }
-            }
-
-            if (producerRecords.size() > 0) {
-                consumer.batchProduce(producerRecords);
-            }
-        } finally {
-            consumer.close();
-        }
     }
 }

@@ -1,8 +1,5 @@
 package org.apache.hudi.debezium.config;
 
-import org.apache.hudi.debezium.common.TopicConfig;
-
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 

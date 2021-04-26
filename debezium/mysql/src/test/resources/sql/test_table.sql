@@ -1,11 +1,12 @@
+# drop table test_table;
 create table if not exists test_table
 (
     empno     varchar(20) not null,
     empname   varchar(20),
     deptno    int,
     birthdate date,
-    salary    int
-
+    salary    int,
+    PRIMARY KEY (empno, salary)
 )
     partition by range (salary) (
         partition p1 values less than (1000),

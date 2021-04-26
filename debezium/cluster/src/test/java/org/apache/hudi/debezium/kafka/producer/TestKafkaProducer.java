@@ -1,12 +1,22 @@
 package org.apache.hudi.debezium.kafka.producer;
 
+import io.confluent.connect.avro.AvroConverter;
+import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import net.mguenther.kafka.junit.EmbeddedKafkaCluster;
 import net.mguenther.kafka.junit.EmbeddedKafkaClusterConfig;
+import org.apache.avro.Schema;
 import org.apache.hudi.debezium.config.KafkaConfig;
-import org.apache.hudi.debezium.kafka.producer.record.RecordConverter;
 import org.apache.hudi.debezium.kafka.producer.record.RecordConverterFactory;
+import org.apache.hudi.debezium.kafka.util.AvroUtils;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.storage.Converter;
+import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static net.mguenther.kafka.junit.EmbeddedKafkaCluster.provisionWith;
 import static net.mguenther.kafka.junit.ObserveKeyValues.on;
@@ -33,18 +43,24 @@ public class TestKafkaProducer {
                 .forEach((k, v) -> kafkaConfig.addKafkaConfig(String.valueOf(k), String.valueOf(v)));
 
         kafkaConfig.addKafkaConfig(BOOTSTRAP_SERVERS_CONFIG, kafka.getBrokerList());
-        kafkaConfig.addKafkaConfig(KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
-        kafkaConfig.addKafkaConfig(VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringDeserializer");
+        //kafkaConfig.addKafkaConfig(KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
+        //kafkaConfig.addKafkaConfig(VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
         kafkaConfig.addKafkaConfig(GROUP_ID_CONFIG, "test_group");
 
-        RecordConverter<?> keyConverter = RecordConverterFactory.getValueConverter(kafkaConfig,
-                RecordConverterFactory.Type.KEY, "test_topic", "test", "test");
-        RecordConverter<?> valueConverter = RecordConverterFactory.getValueConverter(kafkaConfig,
-                RecordConverterFactory.Type.VALUE, "test_topic", "test", "test");
+        Converter keyConverter = RecordConverterFactory.getValueConverter(kafkaConfig, RecordConverterFactory.Type.KEY);
+        Converter valueConverter = RecordConverterFactory.getValueConverter(kafkaConfig, RecordConverterFactory.Type.VALUE);
 
-        ChangeDataProducer<?, ?> consumer = new ChangeDataProducer<>(kafkaConfig,
-                keyConverter.getSerializer(), valueConverter.getSerializer());
-        consumer.produce("test_topic", keyConverter.getKey("test"), valueConverter.getKey("test"));
+        ChangeDataProducer consumer = new ChangeDataProducer(kafkaConfig, keyConverter, valueConverter);
+
+        String key = "key";
+        String value = "value";
+
+        SchemaAndValue keyS = keyConverter.toConnectData("test_topic", key.getBytes());
+        SchemaAndValue valueS = valueConverter.toConnectData("test_topic", value.getBytes());
+
+        SourceRecord record = new SourceRecord(null, null, "test_topic",
+                keyS.schema(), keyS.value(), valueS.schema(), valueS.value());
+        consumer.produce(record);
         consumer.close();
 
         kafka.observe(on("test_topic", 1).build());
