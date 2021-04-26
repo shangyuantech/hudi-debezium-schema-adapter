@@ -1,5 +1,6 @@
 package org.apache.hudi.debezium.mysql.data;
 
+import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 import org.apache.hudi.debezium.zookeeper.task.Task;
 import org.apache.hudi.schema.common.DDLType;
 
@@ -10,8 +11,8 @@ public class MySQLTask extends Task<MySQLDebeziumConfig> {
     public MySQLTask() {
     }
 
-    public MySQLTask(String name, MySQLDebeziumConfig debeziumConfig) {
-        super(name, debeziumConfig);
+    public MySQLTask(String name, MySQLDebeziumConfig debeziumConfig, SchemaRecord record) {
+        super(name, debeziumConfig, record);
     }
 
     public DDLType getDdlType() {

@@ -8,7 +8,7 @@ import org.junit.Test;
 
 public class TestSchemaChange {
 
-    private String data = "{\n" +
+    public static String data = "{\n" +
             "  \"source\" : {\n" +
             "    \"server\" : \"cluster_mysql_bigdata\"\n" +
             "  },\n" +

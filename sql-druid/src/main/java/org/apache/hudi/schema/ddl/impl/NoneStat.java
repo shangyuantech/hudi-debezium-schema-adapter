@@ -5,10 +5,10 @@ import org.apache.hudi.schema.ddl.DDLStat;
 
 public class NoneStat extends DDLStat {
 
-    private final static NoneStat noneStat = new NoneStat(null, null, DDLType.NONE);
+    private final static NoneStat noneStat = new NoneStat(null, null, null, DDLType.NONE);
 
-    public NoneStat(String database, String table, DDLType ddlType) {
-        super(database, table, ddlType);
+    public NoneStat(String database, String table, String sql, DDLType ddlType) {
+        super(database, table, sql, ddlType);
     }
 
     public static NoneStat noneStat() {

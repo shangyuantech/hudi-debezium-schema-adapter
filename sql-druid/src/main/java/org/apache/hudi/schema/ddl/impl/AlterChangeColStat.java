@@ -15,9 +15,9 @@ public class AlterChangeColStat extends DDLStat {
 
     private SQLExpr defaultValue;
 
-    public AlterChangeColStat(String database, String table, DDLType ddlType,
+    public AlterChangeColStat(String database, String table, String sql, DDLType ddlType,
                               String oldColumnName, String newColumnName, SQLDataType dataType, SQLExpr defaultValue) {
-        super(database, table, ddlType);
+        super(database, table, sql, ddlType);
         this.oldColumnName = oldColumnName;
         this.newColumnName = newColumnName;
         this.dataType = dataType;

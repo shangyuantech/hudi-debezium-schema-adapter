@@ -121,7 +121,7 @@ public class MySQLRecordService implements IRecordService {
         String database = ddlStat.getDatabase() == null ? ((MySQLSchemaChange) record).getDatabaseName() : ddlStat.getDatabase();
         String table = ddlStat.getTable();
         String taskName = TaskUtils.getTaskName(topic, database, table);
-        MySQLTask task = new MySQLTask(taskName, mysqlConfig).setDdlType(ddlStat.getDdlType());
+        MySQLTask task = new MySQLTask(taskName, mysqlConfig, record).setDdlType(ddlStat.getDdlType());
 
         // get jdbc link and get table schema
         List<SubTask> subTasks = buildTasks(mysqlConfig, database, ddlStat);

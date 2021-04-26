@@ -1,6 +1,7 @@
 package org.apache.hudi.debezium.zookeeper.task;
 
 import org.apache.hudi.debezium.config.DebeziumConfig;
+import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,8 @@ public class Task<T extends DebeziumConfig> {
 
     private String name;
 
+    private SchemaRecord schemaRecord;
+
     private T debeziumConfig;
 
     private List<SubTask> tasks = new ArrayList<>();
@@ -16,9 +19,10 @@ public class Task<T extends DebeziumConfig> {
     public Task() {
     }
 
-    public Task(String name, T debeziumConfig) {
+    public Task(String name, T debeziumConfig, SchemaRecord schemaRecord) {
         this.name = name;
         this.debeziumConfig = debeziumConfig;
+        this.schemaRecord = schemaRecord;
     }
 
     public void setName(String name) {
@@ -55,10 +59,19 @@ public class Task<T extends DebeziumConfig> {
         return this;
     }
 
+    public SchemaRecord getSchemaRecord() {
+        return schemaRecord;
+    }
+
+    public void setSchemaRecord(SchemaRecord schemaRecord) {
+        this.schemaRecord = schemaRecord;
+    }
+
     @Override
     public String toString() {
         return "Task{" +
                 "name='" + name + '\'' +
+                ", schemaRecord=" + schemaRecord +
                 ", debeziumConfig=" + debeziumConfig +
                 ", tasks=" + tasks +
                 '}';

@@ -14,6 +14,8 @@ import net.mguenther.kafka.junit.EmbeddedKafkaCluster;
 import net.mguenther.kafka.junit.EmbeddedKafkaClusterConfig;
 import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.schema.common.DDLType;
+import org.apache.hudi.schema.ddl.DDLStat;
+import org.apache.hudi.schema.parser.DefaultSchemaParser;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -73,19 +75,28 @@ public class TestRecordMaker {
                 .with(FileDatabaseHistory.FILE_PATH, "/tmp/debezium/file-db-history-enum-column.txt");
     }
 
-    @Test
-    public void testRecordMakerReadRow() throws InterruptedException, IOException, RestClientException {
+    private final DefaultSchemaParser defaultSqlParser = new DefaultSchemaParser();
 
-        List<AlterField> alterFields = new ArrayList<AlterField> () {{
-            AlterField alterFields = new AlterField();
-            alterFields.setNewType("int");
-            alterFields.setNewName("deptno");
-            add(alterFields);
-        }};
+    @Test
+    public void testAddColumn() throws InterruptedException, RestClientException, IOException {
+        String sql = "ALTER TABLE test_database.test_table ADD deptno int";
+        DDLStat ddlStat = defaultSqlParser.getSqlStat(sql);
+        testRecordMakerReadRow(ddlStat);
+    }
+
+    @Test
+    public void testReplaceColumn() throws InterruptedException, RestClientException, IOException {
+        String sql = "ALTER TABLE test_table CHANGE deptno_before deptno int";
+        DDLStat ddlStat = defaultSqlParser.getSqlStat(sql);
+        testRecordMakerReadRow(ddlStat);
+    }
+
+    public void testRecordMakerReadRow(DDLStat ddlStat)
+            throws InterruptedException, IOException, RestClientException {
 
         MySQLRecordProcessor processor = new MySQLRecordProcessor(
                 "test_database", "test_table", defaultJdbcConfigBuilder().build(),
-                DDLType.ALTER_ADD_COL, alterFields);
+                ddlStat);
         Assert.assertNotNull(processor);
         processor.startTask();
 

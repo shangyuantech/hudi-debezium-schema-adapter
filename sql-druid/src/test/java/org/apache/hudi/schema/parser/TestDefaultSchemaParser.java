@@ -1,8 +1,11 @@
 package org.apache.hudi.schema.parser;
 
+import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import org.apache.hudi.schema.ddl.DDLStat;
 import org.apache.hudi.schema.ddl.impl.AlterAddColStat;
 import org.apache.hudi.schema.ddl.impl.AlterChangeColStat;
+import org.apache.hudi.schema.ddl.impl.CreateTableStat;
 import org.apache.hudi.schema.ddl.impl.NoneStat;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,7 +41,18 @@ public class TestDefaultSchemaParser {
         String sql = "/* ApplicationName=DBeaver 21.0.1 - SQLEditor <Script-74.sql> */ create table test (id int(11), name varchar(50))";
         DDLStat testStat = defaultSqlParser.getSqlStat(sql);
         System.out.println(testStat);
-        Assert.assertTrue(testStat instanceof NoneStat);
+        Assert.assertTrue(testStat instanceof CreateTableStat);
+
+        CreateTableStat create = (CreateTableStat) testStat;
+        for (SQLObject sqlObj : create.getStmt().getChildren()) {
+            if (sqlObj instanceof SQLColumnDefinition) {
+                SQLColumnDefinition colDef = (SQLColumnDefinition) sqlObj;
+                if (colDef.getColumnName().equals("name")) {
+                    colDef.setName("name_change");
+                }
+            }
+        }
+        System.out.println(create.toString());
     }
 
 }

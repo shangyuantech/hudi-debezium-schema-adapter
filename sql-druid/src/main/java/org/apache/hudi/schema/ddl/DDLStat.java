@@ -8,15 +8,22 @@ public class DDLStat {
 
     private String table;
 
+    private String originSql;
+
     private DDLType ddlType;
 
     public DDLStat() {
     }
 
-    public DDLStat(String database, String table, DDLType ddlType) {
+    public DDLStat(String database, String table, String originSql, DDLType ddlType) {
         this.database = database;
         this.table = table;
+        this.originSql = originSql;
         this.ddlType = ddlType;
+    }
+
+    public String getOriginSql() {
+        return originSql;
     }
 
     public void setDatabase(String database) {
@@ -48,6 +55,7 @@ public class DDLStat {
         return "DDLStat{" +
                 "database='" + database + '\'' +
                 ", table='" + table + '\'' +
+                ", originSql='" + originSql + '\'' +
                 ", ddlType=" + ddlType +
                 '}';
     }

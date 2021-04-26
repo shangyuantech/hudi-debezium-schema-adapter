@@ -1,5 +1,8 @@
 package io.debezium.connector.mysql;
 
+import com.alibaba.druid.sql.ast.SQLObject;
+import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import io.debezium.function.BufferedBlockingConsumer;
 import io.debezium.jdbc.JdbcConnection;
 import io.debezium.relational.Column;
@@ -11,6 +14,13 @@ import io.debezium.util.Threads;
 import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
 import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.schema.common.DDLType;
+import org.apache.hudi.schema.ddl.DDLStat;
+import org.apache.hudi.schema.ddl.impl.AlterAddColStat;
+import org.apache.hudi.schema.ddl.impl.AlterChangeColStat;
+import org.apache.hudi.schema.ddl.impl.CreateTableStat;
+import org.apache.hudi.schema.parser.DefaultSchemaParser;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,17 +41,12 @@ public class MySQLReader extends AbstractReader {
 
     private final TableId tableId;
 
-    private final DDLType ddlType;
+    private final DDLStat ddlStat;
 
-    private final List<AlterField> alterFields;
-
-    public MySQLReader(String database, String table, MySqlTaskContext context,
-                       DDLType ddlType, List<AlterField> alterFields) {
-
+    public MySQLReader(String database, String table, MySqlTaskContext context, DDLStat ddlStat) {
         super(String.format("%s_%s_task", database, table), context, null);
         this.tableId = new TableId(database, null, table);
-        this.ddlType = ddlType;
-        this.alterFields = alterFields;
+        this.ddlStat = ddlStat;
     }
 
     public MySqlTaskContext getContext() {
@@ -77,11 +82,14 @@ public class MySQLReader extends AbstractReader {
 
         final MySqlSchema schema = getDbSchema();
         final JdbcConnection mysql = connectionContext.jdbc();
+        DDLType ddlType = ddlStat.getDdlType();
 
         try {
             mysql.query("SHOW CREATE TABLE " + quote(tableId), rs -> {
                 if (rs.next()) {
-                    schema.applyDdl(context.source(), tableId.catalog(), rs.getString(2),
+                    String createSQL = rs.getString(2);
+                    schema.applyDdl(context.source(), tableId.catalog(),
+                            ddlType.equals(DDLType.ALTER_CHANGE_COL) ? replaceColName(createSQL) : createSQL,
                             this::enqueueSchemaChanges);
                 }
             });
@@ -100,6 +108,7 @@ public class MySQLReader extends AbstractReader {
 
             mysql.executeWithoutCommitting("USE " + quote(tableId.catalog()) + ";");
 
+            // get total rows
             AtomicLong numRows = new AtomicLong(-1);
             AtomicReference<String> rowCountStr = new AtomicReference<>("<unknown>");
             try {
@@ -114,6 +123,7 @@ public class MySQLReader extends AbstractReader {
                 logger.debug("Error while getting number of rows in table {}: {}", tableId, e.getMessage(), e);
             }
 
+            // query data and send to queue
             mysql.query(getSelect(tableId), factory, rs -> {
                 final Table table = schema.tableFor(tableId);
                 final int numColumns = table.columns().size();
@@ -124,10 +134,11 @@ public class MySQLReader extends AbstractReader {
                     for (int i = 0, j = 1; i != numColumns; ++i, ++j) {
                         Column actualColumn = table.columns().get(i);
                         after[i] = JDBCUtils.readField(rs, j, actualColumn, table);
-                        if (ddlType.equals(DDLType.ALTER_ADD_COL)) {
-                            if (!actualColumn.name().equals(alterFields.get(0).getNewName())) {
-                                before[i] = after[i];
-                            }
+                        if (ddlType.equals(DDLType.ALTER_ADD_COL) &&
+                                actualColumn.name().equals(((AlterAddColStat) ddlStat).getAddColName())) {
+                            logger.trace("skip column {} value", actualColumn.name());
+                        } else {
+                            before[i] = after[i];
                         }
                     }
 
@@ -162,6 +173,29 @@ public class MySQLReader extends AbstractReader {
         } finally {
             completeSuccessfully();
         }
+    }
+
+    private String replaceColName(String createSQL) {
+        DefaultSchemaParser sqlParser = new DefaultSchemaParser();
+        CreateTableStat createStat = (CreateTableStat) sqlParser.getSqlStat(createSQL);
+        SQLStatement stmt = createStat.getStmt();
+        AlterChangeColStat changeColStat = (AlterChangeColStat) ddlStat;
+
+        for (SQLObject sqlObj : stmt.getChildren()) {
+            if (sqlObj instanceof SQLColumnDefinition) {
+                SQLColumnDefinition colDef = (SQLColumnDefinition) sqlObj;
+                if (changeColStat.getNewColumnName().equals(
+                        colDef.getColumnName().replaceAll("`", ""))) {
+                    colDef.setName(changeColStat.getOldColumnName());
+                }
+            }
+        }
+
+        StringBuilder sql = new StringBuilder();
+        sql.append(stmt.toString()).append(";\n");
+        sql.append(changeColStat.getOriginSql()).append(";");
+
+        return sql.toString();
     }
 
     public String getSelect(TableId tableId) {

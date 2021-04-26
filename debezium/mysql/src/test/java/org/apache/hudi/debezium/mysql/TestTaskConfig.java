@@ -2,6 +2,7 @@ package org.apache.hudi.debezium.mysql;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.hudi.debezium.mysql.data.MySQLDebeziumConfig;
+import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.mysql.data.MySQLTask;
 import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.task.SubTask;
@@ -33,10 +34,12 @@ public class TestTaskConfig {
 
     @Test
     public void testTasks() throws JsonProcessingException {
+        String ddl = "ALTER TABLE test_database.test_table ADD test_a CHAR(1) DEFAULT 'a'";
         DefaultSchemaParser schemaParser = new DefaultSchemaParser();
-        DDLStat ddlStat = schemaParser.getSqlStat("ALTER TABLE test_database.test_table ADD test_a CHAR(1) DEFAULT 'a'");
+        DDLStat ddlStat = schemaParser.getSqlStat(ddl);
 
-        MySQLTask task = new MySQLTask("test_task", mysqlConfig).setDdlType(ddlStat.getDdlType());
+        MySQLTask task = new MySQLTask("test_task", mysqlConfig,
+                JsonUtils.readValue(TestSchemaChange.data, MySQLSchemaChange.class)).setDdlType(ddlStat.getDdlType());
         SubTask subTask = new SubTask(String.format("%s#%s", "test_task", "task_1")).setSql("select * from test_table");
         task.addTask(subTask);
 

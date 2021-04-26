@@ -15,12 +15,13 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.schema.ddl.DDLStat;
 import org.apache.hudi.schema.ddl.impl.AlterAddColStat;
 import org.apache.hudi.schema.ddl.impl.AlterChangeColStat;
+import org.apache.hudi.schema.ddl.impl.CreateTableStat;
 import org.apache.hudi.schema.ddl.impl.NoneStat;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.apache.hudi.schema.common.DDLType.ALTER_ADD_COL;
+import static org.apache.hudi.schema.common.DDLType.*;
 
 /**
  * Default schema parser is based on mysql
@@ -53,21 +54,23 @@ public class DefaultSchemaParser {
             return NoneStat.noneStat();
         }
 
-        Optional<DDLStat> customStat = createCustomStat(database, table, stmt.getChildren());
+        Optional<DDLStat> customStat = createCustomStat(database, table, sql, stmt.getChildren());
         if (customStat.isPresent()) {
             return customStat.get();
         } else {
-            return createDDLStat(database, table, stmt.getChildren());
+            return createDDLStat(database, table, sql, stmt);
         }
     }
 
-    protected DDLStat createDDLStat(String database, String table, List<SQLObject> sqlObjs) {
+    protected DDLStat createDDLStat(String database, String table, String sql, SQLStatement stmt) {
         // 2nd loop for infected columns
-        for (SQLObject sqlObj : sqlObjs) {
+        for (SQLObject sqlObj : stmt.getChildren()) {
             if (sqlObj instanceof SQLAlterTableAddColumn) {
-                return createAlterAddStat(database, table, ((SQLAlterTableAddColumn) sqlObj));
+                return createAlterAddStat(database, table, sql, ((SQLAlterTableAddColumn) sqlObj));
             } else if (sqlObj instanceof MySqlAlterTableChangeColumn) {
-                return createAlterChangeStat(database, table, ((MySqlAlterTableChangeColumn) sqlObj));
+                return createAlterChangeStat(database, table, sql, ((MySqlAlterTableChangeColumn) sqlObj));
+            } else if (sqlObj instanceof SQLColumnDefinition) {
+                return createCreateTableStat(database, table, sql, stmt);
             }
         }
 
@@ -77,24 +80,28 @@ public class DefaultSchemaParser {
     /**
      * Provides a custom implementation
      */
-    protected Optional<DDLStat> createCustomStat(String database, String table, List<SQLObject> sqlObjs) {
+    protected Optional<DDLStat> createCustomStat(String database, String table, String sql, List<SQLObject> sqlObjs) {
         return Optional.empty();
     }
 
-    protected DDLStat createAlterAddStat(String database, String table, SQLAlterTableAddColumn sqlObj) {
+    protected DDLStat createAlterAddStat(String database, String table, String sql, SQLAlterTableAddColumn sqlObj) {
         SQLColumnDefinition sqlColDef = sqlObj.getColumns().get(0);
         String columnName = sqlColDef.getColumnName();
         SQLDataType dataType = sqlColDef.getDataType();
         SQLExpr defaultExpr = sqlColDef.getDefaultExpr();
-        return new AlterAddColStat(database, table, ALTER_ADD_COL, columnName, dataType, defaultExpr);
+        return new AlterAddColStat(database, table, sql, ALTER_ADD_COL, columnName, dataType, defaultExpr);
     }
 
-    protected DDLStat createAlterChangeStat(String database, String table, MySqlAlterTableChangeColumn sqlObj) {
+    protected DDLStat createAlterChangeStat(String database, String table, String sql, MySqlAlterTableChangeColumn sqlObj) {
         String columnName = sqlObj.getColumnName().getSimpleName();
         SQLColumnDefinition sqlColDef = sqlObj.getNewColumnDefinition();
         SQLDataType dataType = sqlColDef.getDataType();
         SQLExpr defaultExpr = sqlColDef.getDefaultExpr();
-        return new AlterChangeColStat(database, table, ALTER_ADD_COL, columnName,
+        return new AlterChangeColStat(database, table, sql, ALTER_CHANGE_COL, columnName,
                 sqlColDef.getColumnName(), dataType, defaultExpr);
+    }
+
+    protected DDLStat createCreateTableStat(String database, String table, String sql, SQLStatement stmt) {
+        return new CreateTableStat(database, table, sql, CREATE_TABLE, stmt);
     }
 }

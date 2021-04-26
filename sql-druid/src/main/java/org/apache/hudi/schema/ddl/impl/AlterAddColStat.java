@@ -13,9 +13,9 @@ public class AlterAddColStat extends DDLStat {
 
     private SQLExpr defaultValue;
 
-    public AlterAddColStat(String database, String table, DDLType ddlType,
+    public AlterAddColStat(String database, String table, String sql, DDLType ddlType,
                            String addColName, SQLDataType dataType, SQLExpr defaultValue) {
-        super(database, table, ddlType);
+        super(database, table, sql, ddlType);
         this.addColName = addColName;
         this.dataType = dataType;
         this.defaultValue = defaultValue;
