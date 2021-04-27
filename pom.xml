@@ -9,10 +9,10 @@
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>debezium/mysql</module>
-        <module>sql-druid</module>
-        <module>debezium/cluster</module>
+        <module>adapter-sql-druid</module>
         <module>adapter-server</module>
+        <module>debezium/cluster</module>
+        <module>debezium/mysql</module>
     </modules>
 
     <properties>
