@@ -6,7 +6,6 @@ import org.apache.hudi.debezium.config.KafkaConfig;
 import org.apache.kafka.connect.storage.Converter;
 import org.apache.kafka.connect.storage.StringConverter;
 
-import java.io.IOException;
 import java.util.Map;
 
 import static org.apache.hudi.debezium.kafka.producer.record.RecordConverterFactory.Type.KEY;

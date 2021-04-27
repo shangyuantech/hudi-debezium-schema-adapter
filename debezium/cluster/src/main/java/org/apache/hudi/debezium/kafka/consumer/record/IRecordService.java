@@ -9,5 +9,5 @@ public interface IRecordService {
 
     SchemaRecord listen(ConsumerRecord<?, ?> record) throws Exception;
 
-    Optional<Task<?>> publishTask(SchemaRecord record) throws Exception ;
+    Optional<Task<?, ?>> publishTask(SchemaRecord record) throws Exception ;
 }

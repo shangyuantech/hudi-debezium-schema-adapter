@@ -12,21 +12,17 @@ import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
 import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
-import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.schema.common.DDLType;
 import org.apache.hudi.schema.ddl.DDLStat;
 import org.apache.hudi.schema.ddl.impl.AlterAddColStat;
 import org.apache.hudi.schema.ddl.impl.AlterChangeColStat;
 import org.apache.hudi.schema.ddl.impl.CreateTableStat;
 import org.apache.hudi.schema.parser.DefaultSchemaParser;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -82,14 +78,15 @@ public class MySQLReader extends AbstractReader {
 
         final MySqlSchema schema = getDbSchema();
         final JdbcConnection mysql = connectionContext.jdbc();
-        DDLType ddlType = ddlStat.getDdlType();
+        //DDLType ddlType = ddlStat.getDdlType();
 
         try {
             mysql.query("SHOW CREATE TABLE " + quote(tableId), rs -> {
                 if (rs.next()) {
                     String createSQL = rs.getString(2);
                     schema.applyDdl(context.source(), tableId.catalog(),
-                            ddlType.equals(DDLType.ALTER_CHANGE_COL) ? replaceColName(createSQL) : createSQL,
+                            //ddlType.equals(DDLType.ALTER_CHANGE_COL) ? replaceColName(createSQL) : createSQL,
+                            createSQL,
                             this::enqueueSchemaChanges);
                 }
             });
@@ -134,10 +131,7 @@ public class MySQLReader extends AbstractReader {
                     for (int i = 0, j = 1; i != numColumns; ++i, ++j) {
                         Column actualColumn = table.columns().get(i);
                         after[i] = JDBCUtils.readField(rs, j, actualColumn, table);
-                        if (ddlType.equals(DDLType.ALTER_ADD_COL) &&
-                                actualColumn.name().equals(((AlterAddColStat) ddlStat).getAddColName())) {
-                            logger.trace("skip column {} value", actualColumn.name());
-                        } else {
+                        if (!checkIgnoreColumn(actualColumn.name())) {
                             before[i] = after[i];
                         }
                     }
@@ -175,6 +169,24 @@ public class MySQLReader extends AbstractReader {
         }
     }
 
+    private boolean checkIgnoreColumn(String colName) {
+        DDLType ddlType = ddlStat.getDdlType();
+
+        if (ddlType.equals(DDLType.ALTER_ADD_COL) &&
+                colName.equals(((AlterAddColStat) ddlStat).getAddColName())) {
+            logger.trace("skip column {} value by {}", colName, ddlType);
+            return true;
+        } else if (ddlType.equals(DDLType.ALTER_CHANGE_COL)
+                && colName.equals(((AlterChangeColStat) ddlStat).getNewColumnName())) {
+            logger.trace("skip column {} value by {}. " +
+                    "The ignored logic schema is consistent with debezium mysql", colName, ddlType);
+            return true;
+        }
+
+        return false;
+    }
+
+    @Deprecated
     private String replaceColName(String createSQL) {
         DefaultSchemaParser sqlParser = new DefaultSchemaParser();
         CreateTableStat createStat = (CreateTableStat) sqlParser.getSqlStat(createSQL);

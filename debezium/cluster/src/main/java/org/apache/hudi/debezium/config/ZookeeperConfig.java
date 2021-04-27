@@ -1,5 +1,7 @@
 package org.apache.hudi.debezium.config;
 
+import java.util.Map;
+
 public class ZookeeperConfig {
 
     private String namespace = "hudi";
@@ -27,6 +29,46 @@ public class ZookeeperConfig {
     private Integer curatorKeepAliveSeconds = 1000;
 
     private Integer curatorQueuingCapacity = 10;
+
+    public ZookeeperConfig() {
+        Map<String,String> envs = System.getenv();
+        envs.forEach((k, v) -> {
+            if (sameEnv(k, "HUDI_DBZ_NAMESPACE")) {
+                setNamespace(v);
+            } else if (sameEnv(k, "HUDI_DBZ_SERVICE")) {
+                setService(v);
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_HOST")) {
+                setZkConnPath(v);
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_LOOP_INTERVAL")) {
+                setMasterLoopInterval(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_SESSION_TIMEOUT")) {
+                setZkClientSessionTimeout(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_CONN_TIMEOUT")) {
+                setZkClientConnectionTimeout(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_SLEEP_TIMEOUT")) {
+                setZkClientBaseSleepTimeMs(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_ZK_MAX_RETRIES")) {
+                setZkClientMaxRetries(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_CURATOR_SINGLE")) {
+                setCuratorSingle(Boolean.valueOf(v));
+            } else if (sameEnv(k, "HUDI_DBZ_CURATOR_CORE_POOL_SIZE")) {
+                setCuratorCorePoolSize(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_CURATOR_MAX_POLL_SIZE")) {
+                setCuratorMaxPoolSize(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_CURATOR_KEEP_ALIVE_SEC")) {
+                setCuratorKeepAliveSeconds(Integer.parseInt(v));
+            } else if (sameEnv(k, "HUDI_DBZ_CURATOR_QUEUE_CAPACITY")) {
+                setCuratorQueuingCapacity(Integer.parseInt(v));
+            }
+        });
+    }
+
+    private boolean sameEnv(String envName, String propertyName) {
+        if (envName.toUpperCase().equals(propertyName)) {
+            return true;
+        }
+        return false;
+    }
 
     public String getNamespace() {
         return namespace;

@@ -4,6 +4,8 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.ChildData;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.hudi.debezium.common.DBType;
+import org.apache.hudi.debezium.common.TopicConfig;
+import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.slave.task.ISlaveTask;
 import org.apache.hudi.debezium.zookeeper.slave.task.SlaveTaskPrototype;
 import org.apache.hudi.debezium.zookeeper.util.ZooKeeperUtils;
@@ -12,6 +14,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.regex.Pattern;
 
 public class SlaveZkService {
@@ -41,10 +45,18 @@ public class SlaveZkService {
             switch (event.getType()) {
                 case NODE_ADDED:
                     if (createExecutor(client, path)) {
+
+                        // get topic config
+                        Path topic = Paths.get(path).getParent().getParent();
+                        String topicPath = topic.toString();
+                        String topicName = topic.getFileName().toString();
+                        String topicConfigStr = new String(client.getData().forPath(topicPath));
+                        TopicConfig topicConfig = JsonUtils.readValue(topicConfigStr, TopicConfig.class);
+
                         // get task db type;
-                        ISlaveTask slaveTask = slaveTaskPrototype.getSlaveTask(DBType.MySQL);
+                        ISlaveTask slaveTask = slaveTaskPrototype.getSlaveTask(topicConfig.getDbType());
                         // start task
-                        slaveTask.eventTrigger(client, event);
+                        slaveTask.eventTrigger(client, event, topicName, topicConfig);
                     }
                     break;
                 case NODE_UPDATED:

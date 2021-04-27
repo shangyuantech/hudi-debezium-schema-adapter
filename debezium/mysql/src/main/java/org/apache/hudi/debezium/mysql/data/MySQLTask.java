@@ -1,17 +1,16 @@
 package org.apache.hudi.debezium.mysql.data;
 
-import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 import org.apache.hudi.debezium.zookeeper.task.Task;
 import org.apache.hudi.schema.common.DDLType;
 
-public class MySQLTask extends Task<MySQLDebeziumConfig> {
+public class MySQLTask extends Task<MySQLDebeziumConfig, MySQLSchemaChange> {
 
     private DDLType ddlType;
 
     public MySQLTask() {
     }
 
-    public MySQLTask(String name, MySQLDebeziumConfig debeziumConfig, SchemaRecord record) {
+    public MySQLTask(String name, MySQLDebeziumConfig debeziumConfig, MySQLSchemaChange record) {
         super(name, debeziumConfig, record);
     }
 

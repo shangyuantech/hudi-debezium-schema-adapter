@@ -6,11 +6,11 @@ import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Task<T extends DebeziumConfig> {
+public class Task<T extends DebeziumConfig, R extends SchemaRecord> {
 
     private String name;
 
-    private SchemaRecord schemaRecord;
+    private R schemaRecord;
 
     private T debeziumConfig;
 
@@ -19,7 +19,7 @@ public class Task<T extends DebeziumConfig> {
     public Task() {
     }
 
-    public Task(String name, T debeziumConfig, SchemaRecord schemaRecord) {
+    public Task(String name, T debeziumConfig, R schemaRecord) {
         this.name = name;
         this.debeziumConfig = debeziumConfig;
         this.schemaRecord = schemaRecord;
@@ -49,21 +49,21 @@ public class Task<T extends DebeziumConfig> {
         return tasks;
     }
 
-    public Task<T> addTask(SubTask task) {
+    public Task<T, R> addTask(SubTask task) {
         tasks.add(task);
         return this;
     }
 
-    public Task<T> addSubTasks(List<SubTask> subTasks) {
+    public Task<T, R> addSubTasks(List<SubTask> subTasks) {
         this.tasks.addAll(subTasks);
         return this;
     }
 
-    public SchemaRecord getSchemaRecord() {
+    public R getSchemaRecord() {
         return schemaRecord;
     }
 
-    public void setSchemaRecord(SchemaRecord schemaRecord) {
+    public void setSchemaRecord(R schemaRecord) {
         this.schemaRecord = schemaRecord;
     }
 

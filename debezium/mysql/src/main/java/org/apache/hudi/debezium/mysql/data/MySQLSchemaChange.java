@@ -1,6 +1,7 @@
 package org.apache.hudi.debezium.mysql.data;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 
 public class MySQLSchemaChange implements SchemaRecord {
@@ -85,7 +86,7 @@ public class MySQLSchemaChange implements SchemaRecord {
         }
 
         public String getFile() {
-            return file;
+            return StringUtils.isBlank(file) ? "" : file;
         }
 
         public void setFile(String file) {
@@ -93,7 +94,7 @@ public class MySQLSchemaChange implements SchemaRecord {
         }
 
         public Long getPos() {
-            return pos;
+            return pos == null ? 0L : pos;
         }
 
         public void setPos(Long pos) {

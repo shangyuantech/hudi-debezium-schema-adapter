@@ -2,6 +2,8 @@ package org.apache.hudi.debezium.mysql.cluster;
 
 import ch.vorburger.mariadb4j.DB;
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import net.mguenther.kafka.junit.*;
 import org.apache.curator.test.TestingServer;
 import org.apache.hudi.debezium.common.DBType;
@@ -29,9 +31,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Application;
 import java.io.File;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import static net.mguenther.kafka.junit.EmbeddedKafkaCluster.provisionWith;
 import static net.mguenther.kafka.junit.ObserveKeyValues.on;
@@ -44,35 +46,6 @@ public class TestMySQLClusterService extends JerseyTest {
 
     public static final String CONNECTORS = "[\"cluster_mysql_test-test_database-test_table\"]";
 
-    public static final String CONNECTOR_CONFIG1 = "{\n" +
-            "\t\"config\": {\n" +
-            "\t\t\"connector.class\": \"io.debezium.connector.mysql.MySqlConnector\",\n" +
-            "\t\t\"database.history.kafka.bootstrap.servers\": \"PLAINTEXT://localhost:9092\",\n" +
-            "\t\t\"database.history.kafka.topic\": \"schema-changes.test_database\",\n" +
-            "\t\t\"database.history.store.only.monitored.tables.ddl\": \"true\",\n" +
-            "\t\t\"database.hostname\": \"localhost\",\n" +
-            "\t\t\"database.password\": \"test\",\n" +
-            "\t\t\"database.port\": \"3306\",\n" +
-            "\t\t\"database.server.name\": \"cluster_mysql_test\",\n" +
-            "\t\t\"database.user\": \"test\",\n" +
-            "\t\t\"database.whitelist\": \"test_database\",\n" +
-            "\t\t\"include.schema.changes\": \"true\",\n" +
-            "\t\t\"name\": \"cluster_mysql_test-test_database-test_table\",\n" +
-            "\t\t\"table.whitelist\": \"test_database.test_table\",\n" +
-            "\t\t\"time.precision.mode\": \"connect\",\n" +
-            "\t\t\"tombstones.on.delete\": \"false\"\n" +
-            "\t},\n" +
-            "\t\"name\": \"cluster_mysql_test-test_database-test_table\",\n" +
-            "\t\"tasks\": [\n" +
-            "\t\t{\n" +
-            "\t\t\t\"connector\": \"cluster_mysql_test-test_database-test_table\",\n" +
-            "\t\t\t\"task\": 0\n" +
-            "\t\t}\n" +
-            "\t],\n" +
-            "\t\"type\": \"source\"\n" +
-            "}";
-
-
     @Path("connectors")
     public static class ConnectorResource {
         @GET
@@ -82,8 +55,13 @@ public class TestMySQLClusterService extends JerseyTest {
 
         @GET
         @Path("cluster_mysql_test-test_database-test_table")
-        public String getConnectorConfig1() {
-            return CONNECTOR_CONFIG1;
+        public String getConnectorConfig1() throws IOException {
+            File file = new File(
+                    Objects.requireNonNull(this.getClass().getClassLoader().getResource("json/connector_test_table.json")).getFile()
+            );
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(file);
+            return jsonNode.toString();
         }
     }
 
@@ -114,7 +92,7 @@ public class TestMySQLClusterService extends JerseyTest {
         kafka.start();
 
         DBConfigurationBuilder configBuilder = DBConfigurationBuilder.newBuilder();
-        configBuilder.setPort(3306);
+        configBuilder.setPort(3307);
         configBuilder.setDataDir("/tmp/mysql/test_database");
         db = DB.newEmbeddedDB(configBuilder.build());
         db.start();
@@ -188,7 +166,7 @@ public class TestMySQLClusterService extends JerseyTest {
 
         MySQLSchemaChange schemaChange2 = new MySQLSchemaChange();
         schemaChange2.setDatabaseName("test_database");
-        schemaChange2.setDdl("ALTER TABLE test_database.test_table ADD test_a CHAR(1) DEFAULT 'a'");
+        schemaChange2.setDdl("ALTER TABLE test_database.test_table ADD empname varchar(20)");
         schemaChange2.getSource().setServer("cluster_mysql_test");
         schemaChange2.getPosition().setFile("mysql-bin.000003");
         schemaChange2.getPosition().setPos(4132449L);
@@ -197,9 +175,12 @@ public class TestMySQLClusterService extends JerseyTest {
         KeyValue<String, String> record2 = new KeyValue<>("test_database", JsonUtils.writeValueAsString(schemaChange2));
 
         kafka.send(to("cluster_mysql_test", Arrays.asList(record1, record2)).build());
-        kafka.observe(on("cluster_mysql_test", 2).build());
+        //kafka.observe(on("cluster_mysql_test", 2).build());
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+        //Thread.sleep(TimeUnit.SECONDS.toMillis(30));
+
+        kafka.observe(on("cluster_mysql_test.test_database.test_table", 4).build());
+        db.stop();
     }
 
 }

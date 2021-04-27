@@ -1,9 +1,12 @@
 package io.debezium.connector.mysql;
 
 import io.debezium.config.Configuration;
+import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
+import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
 import org.apache.hudi.debezium.zookeeper.task.AlterField;
 import org.apache.hudi.schema.common.DDLType;
 import org.apache.hudi.schema.ddl.DDLStat;
+import org.apache.hudi.schema.parser.DefaultSchemaParser;
 import org.apache.kafka.connect.source.SourceRecord;
 
 import java.util.List;
@@ -16,16 +19,21 @@ public class MySQLRecordProcessor {
     private final MySQLReader reader;
 
     public MySQLRecordProcessor(String database, String table, Configuration config,
-                                DDLStat ddlStat) {
-        this.context = createAndStartTaskContext(config, new Filters.Builder(config).build());
-        this.reader = new MySQLReader(database, table, context, ddlStat);
+                                MySQLSchemaChange schemaRecord) {
+        this.context = createAndStartTaskContext(config, new Filters.Builder(config).build(), schemaRecord);
+
+        DefaultSchemaParser defaultSqlParser = new DefaultSchemaParser();
+        this.reader = new MySQLReader(database, table, context, defaultSqlParser.getSqlStat(schemaRecord.getDdl()));
     }
 
-    private MySqlTaskContext createAndStartTaskContext(Configuration config,
-                                                              Filters filters) {
+    private MySqlTaskContext createAndStartTaskContext(Configuration config, Filters filters,
+                                                       MySQLSchemaChange schemaRecord) {
+
         MySqlTaskContext taskContext = new MySqlTaskContext(config, filters);
         taskContext.start();
-        taskContext.source().setBinlogStartPoint("", 0L);
+
+        taskContext.source().setBinlogStartPoint(schemaRecord.getPosition().getFile(),
+                schemaRecord.getPosition().getPos());
         return taskContext;
     }
 
@@ -38,5 +46,10 @@ public class MySQLRecordProcessor {
         while ((records = this.reader.poll()) != null) {
             consumer.accept(records);
         }
+    }
+
+    public void stopTask() {
+        this.context.shutdown();
+        this.reader.stop();
     }
 }

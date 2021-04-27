@@ -1,4 +1,4 @@
-package org.apache.hudi.debezium.example;
+package org.apache.hudi.debezium.reflection.impl;
 
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;

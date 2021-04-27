@@ -71,7 +71,7 @@ public class ConsumerService extends Thread {
                             SchemaRecord schemaRecord = recordService.listen(record);
 
                             // get publish task object
-                            Optional<Task<?>> task = recordService.publishTask(schemaRecord);
+                            Optional<Task<?, ?>> task = recordService.publishTask(schemaRecord);
 
                             // register task to zookeeper
                             if (task.isPresent()) {
@@ -98,7 +98,7 @@ public class ConsumerService extends Thread {
         consumer.close();
     }
 
-    private void registerTask(Task<?> task) throws Exception {
+    private void registerTask(Task<?, ?> task) throws Exception {
         // register main task, this describe task info
         String topicPath = ZooKeeperUtils.getTopicsPath(zkConnector.getConfig().getService());
         String mainTaskPath = String.format("%s/%s/%s", topicPath, topic, task.getName());

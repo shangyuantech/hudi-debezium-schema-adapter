@@ -127,7 +127,7 @@ public class TestSchemaRecordTask extends JerseyTest {
     @Test
     public void testPartitionList() throws Exception {
         MySQLRecordService recordService = new MySQLRecordService(topic, topicConfig, StringDeserializer.class);
-        Optional<Task<?>> task = recordService.publishTask(getSchemaRecord(
+        Optional<Task<?, ?>> task = recordService.publishTask(getSchemaRecord(
                 "ALTER TABLE test_database.test_table_partition_list ADD test_a CHAR(1) DEFAULT 'a'"));
 
         Assert.assertTrue(task.isPresent());
@@ -149,7 +149,7 @@ public class TestSchemaRecordTask extends JerseyTest {
     @Test
     public void testPartitionHash() throws Exception {
         MySQLRecordService recordService = new MySQLRecordService(topic, topicConfig, StringDeserializer.class);
-        Optional<Task<?>> task = recordService.publishTask(getSchemaRecord(
+        Optional<Task<?, ?>> task = recordService.publishTask(getSchemaRecord(
                 "ALTER TABLE test_database.test_table_partition_hash ADD test_a CHAR(1) DEFAULT 'a'"));
 
         Assert.assertTrue(task.isPresent());

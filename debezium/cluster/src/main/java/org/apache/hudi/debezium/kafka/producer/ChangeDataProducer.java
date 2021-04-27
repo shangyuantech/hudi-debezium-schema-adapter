@@ -7,11 +7,15 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.apache.kafka.connect.storage.Converter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
 public class ChangeDataProducer {
+
+    private final static Logger logger = LoggerFactory.getLogger(ChangeDataProducer.class);
 
     private final KafkaProducer<Object, Object> producer;
 
@@ -44,8 +48,14 @@ public class ChangeDataProducer {
     }
 
     public void batchProduce(List<SourceRecord> records) {
-        for (SourceRecord record : records) {
-            produce(record, false);
+        long rows = records.size();
+        if (logger.isDebugEnabled()) {
+            if (rows > 0) {
+                logger.debug("[slave] start send {} rows data to kafka topic {}", records.size(), records.get(0).topic());
+            }
+        }
+        for (int i = 0 ; i < rows; i ++) {
+            produce(records.get(i), false);
         }
         producer.flush();
     }

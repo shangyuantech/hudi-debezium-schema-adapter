@@ -12,6 +12,7 @@
         <module>debezium/mysql</module>
         <module>sql-druid</module>
         <module>debezium/cluster</module>
+        <module>adapter-server</module>
     </modules>
 
     <properties>
@@ -31,6 +32,7 @@
         <jersey-test.version>2.33</jersey-test.version>
         <dbutils.version>1.7</dbutils.version>
         <debezium.version>1.3.1.Final</debezium.version>
+        <mariaDB4j.version>2.4.0</mariaDB4j.version>
     </properties>
 
     <build>

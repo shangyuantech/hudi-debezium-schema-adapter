@@ -1,0 +1,28 @@
+{
+  "config": {
+    "connector.class": "io.debezium.connector.mysql.MySqlConnector",
+    "database.history.kafka.bootstrap.servers": "PLAINTEXT://localhost:9092",
+    "database.history.kafka.topic": "schema-changes.test_database",
+    "database.history.store.only.monitored.tables.ddl": "true",
+    "database.hostname": "localhost",
+    "database.password": "",
+    "database.port": "3307",
+    "database.server.name": "cluster_mysql_test_database",
+    "database.serverTimezone": "Asia/Shanghai",
+    "database.user": "root",
+    "database.whitelist": "test_database",
+    "include.schema.changes": "true",
+    "name": "cluster_mysql_test-test_database-test_table",
+    "table.whitelist": "test_database.test_table",
+    "time.precision.mode": "connect",
+    "tombstones.on.delete": "false"
+  },
+  "name": "cluster_mysql_test-test_database-test_table",
+  "tasks": [
+    {
+      "connector": "cluster_mysql_test-test_database-test_table",
+      "task": 0
+    }
+  ],
+  "type": "source"
+}

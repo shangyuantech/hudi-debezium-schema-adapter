@@ -2,6 +2,7 @@ package org.apache.hudi.debezium.mysql.connector;
 
 import ch.vorburger.mariadb4j.DBConfigurationBuilder;
 import ch.vorburger.mariadb4j.junit.MariaDB4jRule;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.confluent.connect.avro.AvroConverter;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
@@ -12,10 +13,9 @@ import io.debezium.connector.mysql.MySQLRecordProcessor;
 import io.debezium.relational.history.FileDatabaseHistory;
 import net.mguenther.kafka.junit.EmbeddedKafkaCluster;
 import net.mguenther.kafka.junit.EmbeddedKafkaClusterConfig;
-import org.apache.hudi.debezium.zookeeper.task.AlterField;
-import org.apache.hudi.schema.common.DDLType;
-import org.apache.hudi.schema.ddl.DDLStat;
-import org.apache.hudi.schema.parser.DefaultSchemaParser;
+import org.apache.hudi.debezium.mysql.TestSchemaChange;
+import org.apache.hudi.debezium.mysql.data.MySQLSchemaChange;
+import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -50,6 +50,9 @@ public class TestRecordMaker {
 
     private EmbeddedKafkaCluster kafka;
 
+    public TestRecordMaker() throws JsonProcessingException {
+    }
+
     @Before
     public void before() throws Exception {
         kafka = provisionWith(EmbeddedKafkaClusterConfig.useDefaults());
@@ -75,28 +78,27 @@ public class TestRecordMaker {
                 .with(FileDatabaseHistory.FILE_PATH, "/tmp/debezium/file-db-history-enum-column.txt");
     }
 
-    private final DefaultSchemaParser defaultSqlParser = new DefaultSchemaParser();
+    private final MySQLSchemaChange schemaChange = JsonUtils.readValue(TestSchemaChange.data, MySQLSchemaChange.class);
 
     @Test
     public void testAddColumn() throws InterruptedException, RestClientException, IOException {
         String sql = "ALTER TABLE test_database.test_table ADD deptno int";
-        DDLStat ddlStat = defaultSqlParser.getSqlStat(sql);
-        testRecordMakerReadRow(ddlStat);
+        schemaChange.setDdl(sql);
+        testRecordMakerReadRow();
     }
 
     @Test
     public void testReplaceColumn() throws InterruptedException, RestClientException, IOException {
         String sql = "ALTER TABLE test_table CHANGE deptno_before deptno int";
-        DDLStat ddlStat = defaultSqlParser.getSqlStat(sql);
-        testRecordMakerReadRow(ddlStat);
+        schemaChange.setDdl(sql);
+        testRecordMakerReadRow();
     }
 
-    public void testRecordMakerReadRow(DDLStat ddlStat)
+    public void testRecordMakerReadRow()
             throws InterruptedException, IOException, RestClientException {
 
-        MySQLRecordProcessor processor = new MySQLRecordProcessor(
-                "test_database", "test_table", defaultJdbcConfigBuilder().build(),
-                ddlStat);
+        MySQLRecordProcessor processor = new MySQLRecordProcessor("test_database", "test_table",
+                defaultJdbcConfigBuilder().build(), schemaChange);
         Assert.assertNotNull(processor);
         processor.startTask();
 
