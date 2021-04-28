@@ -98,7 +98,7 @@ public class TestRecordMaker {
             throws InterruptedException, IOException, RestClientException {
 
         MySQLRecordProcessor processor = new MySQLRecordProcessor("test_database", "test_table",
-                defaultJdbcConfigBuilder().build(), schemaChange);
+                defaultJdbcConfigBuilder().build(), "", schemaChange);
         Assert.assertNotNull(processor);
         processor.startTask();
 

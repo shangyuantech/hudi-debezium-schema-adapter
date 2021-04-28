@@ -62,7 +62,7 @@ public class MySQLRecordService implements IRecordService {
     private final static Logger logger = LoggerFactory.getLogger(MySQLRecordService.class);
 
     @Override
-    public MySQLSchemaChange listen(ConsumerRecord<?, ?> record) throws Exception {
+    public Optional<SchemaRecord> listen(ConsumerRecord<?, ?> record) throws Exception {
         if (logger.isDebugEnabled()) {
             logger.debug("[master] receive mysql debezium schema change consumer record \nkey = {}, value = {}",
                     record.key(), record.value());
@@ -76,7 +76,7 @@ public class MySQLRecordService implements IRecordService {
             schemaChange = JsonUtils.readValue(String.valueOf(record.value()), MySQLSchemaChange.class);
         }
 
-        return schemaChange;
+        return Optional.of(schemaChange);
     }
 
     private final static List<DDLType> SUPPORTED_DDL = new ArrayList<DDLType>() {{

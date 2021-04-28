@@ -1,5 +1,6 @@
 package org.apache.hudi.debezium.kafka.consumer;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.config.KafkaConfig;
 import org.apache.hudi.debezium.kafka.consumer.record.IRecordService;
 import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
@@ -12,14 +13,20 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.PartitionInfo;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+
+import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
 
 
 public class ConsumerService extends Thread {
@@ -36,12 +43,25 @@ public class ConsumerService extends Thread {
 
     private final ZookeeperConnector zkConnector;
 
-    public ConsumerService(String topic, KafkaConfig kafkaConfig, ZookeeperConnector zkConnector, IRecordService recordService) {
+    private final static String HUDI_DBZ_SCHEMA_CHANGE_START_TIME = "HUDI_DBZ_SCHEMA_CHANGE_START_TIME";
+    private Long startTime = 0L;
+
+    public ConsumerService(String topic, KafkaConfig kafkaConfig, ZookeeperConnector zkConnector,
+                           IRecordService recordService) {
         this.topic = topic;
         this.kafkaConfig = kafkaConfig;
         this.zkConnector = zkConnector;
         this.recordService = recordService;
+
+        if (StringUtils.isBlank(kafkaConfig.get(MAX_POLL_RECORDS_CONFIG))) {
+            kafkaConfig.addKafkaConfig(MAX_POLL_RECORDS_CONFIG, "100");
+        }
         this.consumer = new KafkaConsumer<>(kafkaConfig.getProps());
+
+        String startTimeStr = System.getenv("HUDI_DBZ_SCHEMA_CHANGE_START_TIME");
+        if (StringUtils.isNotBlank(startTimeStr)) {
+            startTime = Long.parseLong(startTimeStr);
+        }
     }
 
     public String getTopic() {
@@ -64,18 +84,26 @@ public class ConsumerService extends Thread {
             try {
                 msgList = consumer.poll(Duration.ofMillis(TimeUnit.SECONDS.toMillis(1)));
                 if (null != msgList && msgList.count() > 0) {
-
                     for (ConsumerRecord<?, ?> record : msgList) {
+                        if (record.timestamp() < startTime) {
+                            if (logger.isTraceEnabled()) {
+                                logger.trace("[publish] record {} is before {}, so that skip.",
+                                        record.value(), new Timestamp(startTime));
+                            }
+                            continue;
+                        }
+
                         try {
                             // get schema change record
-                            SchemaRecord schemaRecord = recordService.listen(record);
+                            Optional<SchemaRecord> schemaRecord = recordService.listen(record);
+                            if (schemaRecord.isPresent()) {
+                                // get publish task object
+                                Optional<Task<?, ?>> task = recordService.publishTask(schemaRecord.get());
 
-                            // get publish task object
-                            Optional<Task<?, ?>> task = recordService.publishTask(schemaRecord);
-
-                            // register task to zookeeper
-                            if (task.isPresent()) {
-                                registerTask(task.get());
+                                // register task to zookeeper
+                                if (task.isPresent()) {
+                                    registerTask(task.get());
+                                }
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -85,8 +113,10 @@ public class ConsumerService extends Thread {
                     if ("false".equals(kafkaConfig.getProps().getProperty(
                             ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true"))
                     ) {
-                        consumer.commitSync();
+                        //consumer.commitSync();
                     }
+
+                    // todo every loop save kafka offset
                 } else {
                     Thread.sleep(TimeUnit.SECONDS.toMillis(1));
                 }

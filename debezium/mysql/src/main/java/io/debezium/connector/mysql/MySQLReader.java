@@ -11,6 +11,7 @@ import io.debezium.relational.TableId;
 import io.debezium.util.Clock;
 import io.debezium.util.Strings;
 import io.debezium.util.Threads;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.mysql.jdbc.JDBCUtils;
 import org.apache.hudi.schema.common.DDLType;
 import org.apache.hudi.schema.ddl.DDLStat;
@@ -35,13 +36,16 @@ public class MySQLReader extends AbstractReader {
 
     private ExecutorService executorService;
 
+    private final String sql;
+
     private final TableId tableId;
 
     private final DDLStat ddlStat;
 
-    public MySQLReader(String database, String table, MySqlTaskContext context, DDLStat ddlStat) {
+    public MySQLReader(String database, String table, String sql, MySqlTaskContext context, DDLStat ddlStat) {
         super(String.format("%s_%s_task", database, table), context, null);
         this.tableId = new TableId(database, null, table);
+        this.sql = sql;
         this.ddlStat = ddlStat;
     }
 
@@ -121,7 +125,7 @@ public class MySQLReader extends AbstractReader {
             }
 
             // query data and send to queue
-            mysql.query(getSelect(tableId), factory, rs -> {
+            mysql.query(StringUtils.isNotBlank(sql) ? sql : getSelect(tableId), factory, rs -> {
                 final Table table = schema.tableFor(tableId);
                 final int numColumns = table.columns().size();
                 final Object[] after = new Object[numColumns];

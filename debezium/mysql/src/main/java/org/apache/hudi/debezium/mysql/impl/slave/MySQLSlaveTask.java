@@ -79,12 +79,12 @@ public class MySQLSlaveTask implements ISlaveTask {
         String table = subTask.getTable();
         Configuration conf = defaultJdbcConfigBuilder(mysqlConfig, database, table).build();
 
-        MySQLRecordProcessor processor = new MySQLRecordProcessor(database, table,
-                conf, mysqlTask.getSchemaRecord());
+        MySQLRecordProcessor processor = new MySQLRecordProcessor(database, table, conf, subTask.getSql(),
+                mysqlTask.getSchemaRecord());
         processor.startTask();
 
         // poll data and send to kafka
-        submitRecord(kafkaConfig, processor);
+        submitRecord(kafkaConfig, processor, taskName);
 
         // stop
         processor.stopTask();
@@ -96,8 +96,8 @@ public class MySQLSlaveTask implements ISlaveTask {
                 .with(MySqlConnectorConfig.HOSTNAME, mysqlConfig.getHostname())
                 .with(MySqlConnectorConfig.PORT, mysqlConfig.getPort())
                 .with(MySqlConnectorConfig.USER, mysqlConfig.getUser())
-                .with(MySqlConnectorConfig.PASSWORD, mysqlConfig.getUser())
-                .with(MySqlConnectorConfig.SERVER_NAME, "cluster_mysql_test")
+                .with(MySqlConnectorConfig.PASSWORD, mysqlConfig.getPassword())
+                .with(MySqlConnectorConfig.SERVER_NAME, mysqlConfig.getServerName())
                 .with(MySqlConnectorConfig.DATABASE_INCLUDE_LIST, database)
                 .with(MySqlConnectorConfig.TABLE_INCLUDE_LIST, String.format("%s.%s", database, table))
                 .with(MySqlConnectorConfig.SSL_MODE, mysqlConfig.getDatabaseSslMode())
@@ -107,7 +107,9 @@ public class MySQLSlaveTask implements ISlaveTask {
                 .with(FileDatabaseHistory.FILE_PATH, "/tmp/debezium/file-db-history-enum-column.txt");
     }
 
-    private void submitRecord(KafkaConfig kafkaConfig, MySQLRecordProcessor processor) throws InterruptedException {
+    private void submitRecord(KafkaConfig kafkaConfig, MySQLRecordProcessor processor, String taskName)
+            throws InterruptedException {
+
         // init converter and producer to send kafka data
         Converter keyConverter = RecordConverterFactory.getValueConverter(kafkaConfig, RecordConverterFactory.Type.KEY);
         Converter valueConverter = RecordConverterFactory.getValueConverter(kafkaConfig, RecordConverterFactory.Type.VALUE);

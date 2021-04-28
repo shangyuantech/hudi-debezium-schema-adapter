@@ -41,7 +41,11 @@ public class AvroUtils {
             serialized = os.toByteArray();
         }
 
-        return transformByteToObject(serialized, clazz);
+        return transformByteToObject(serialized, clazz, recordData.getSchema());
+    }
+
+    public static <T> T transformByteToObject(byte[] serialized, Class<T> clazz, Schema schema) throws IOException {
+        return mapper.reader(clazz).with(new AvroSchema(schema)).readValue(serialized);
     }
 
     public static <T> T transformByteToObject(byte[] serialized, Class<T> clazz) throws IOException {

@@ -14,16 +14,17 @@ import java.util.function.Consumer;
 
 public class MySQLRecordProcessor {
 
+    private final static DefaultSchemaParser defaultSqlParser = new DefaultSchemaParser();
+
     private final MySqlTaskContext context;
 
     private final MySQLReader reader;
 
-    public MySQLRecordProcessor(String database, String table, Configuration config,
+    public MySQLRecordProcessor(String database, String table, Configuration config, String sql,
                                 MySQLSchemaChange schemaRecord) {
         this.context = createAndStartTaskContext(config, new Filters.Builder(config).build(), schemaRecord);
-
-        DefaultSchemaParser defaultSqlParser = new DefaultSchemaParser();
-        this.reader = new MySQLReader(database, table, context, defaultSqlParser.getSqlStat(schemaRecord.getDdl()));
+        this.reader = new MySQLReader(database, table, sql, context,
+                defaultSqlParser.getSqlStat(schemaRecord.getDdl()));
     }
 
     private MySqlTaskContext createAndStartTaskContext(Configuration config, Filters filters,

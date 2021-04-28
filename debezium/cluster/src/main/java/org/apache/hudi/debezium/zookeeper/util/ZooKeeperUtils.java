@@ -18,6 +18,10 @@ public class ZooKeeperUtils {
         return String.format("/%s/master", service);
     }
 
+    public static String getKafkaPath(String service) {
+        return String.format("/%s/kafka", service);
+    }
+
     public static String getSlaveBasePath(String service) {
         return String.format("/%s/slave", service);
     }

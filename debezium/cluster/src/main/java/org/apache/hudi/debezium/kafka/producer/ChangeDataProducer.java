@@ -39,6 +39,9 @@ public class ChangeDataProducer {
         byte[] value = valueConverter.fromConnectData(record.topic(), record.valueSchema(), record.value());
         ProducerRecord<Object, Object> sendData = new ProducerRecord<>(record.topic(), key, value);
         try {
+            if (logger.isTraceEnabled()) {
+                logger.trace("[slave] start send data `{}` to kafka topic {}", record, record.topic());
+            }
             producer.send(sendData);
         } catch(SerializationException e) {
             e.printStackTrace();
