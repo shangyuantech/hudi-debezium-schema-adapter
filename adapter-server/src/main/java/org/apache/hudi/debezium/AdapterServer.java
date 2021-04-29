@@ -3,11 +3,16 @@ package org.apache.hudi.debezium;
 import org.apache.hudi.debezium.config.ZookeeperConfig;
 import org.apache.hudi.debezium.kafka.master.MasterDebeziumService;
 import org.apache.hudi.debezium.reflection.ReflectionService;
+import org.apache.hudi.debezium.resource.TopicResource;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.master.MasterService;
 import org.apache.hudi.debezium.zookeeper.slave.SlaveService;
 import org.apache.hudi.debezium.zookeeper.slave.SlaveZkService;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.server.ResourceConfig;
+import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,11 +52,12 @@ public class AdapterServer {
         }
 
         // start slave
+        ZookeeperConnector slaveZkConnector = new ZookeeperConnector(zkConfig, true);
         try {
             logger.info("[slave] starting slave service ...");
-            SlaveService slave = new SlaveService(
-                    new ZookeeperConnector(zkConfig, true),
-                    new SlaveZkService(masterDbzService.getTopicPath(), reflection.getSlaveTaskPrototype()));
+            SlaveService slave = new SlaveService(slaveZkConnector,
+                    new SlaveZkService(masterDbzService.getTopicPath(),
+                            reflection.getSlaveTaskPrototype()));
             slave.startSlave();
             logger.info("[slave] slave service started successfully !");
         } catch (Exception e) {
@@ -59,12 +65,22 @@ public class AdapterServer {
             throw new RuntimeException(e);
         }
 
-        if (!startJetty) {
-            return;
+        if (startJetty) {
+            serverStart(slaveZkConnector);
         }
+    }
 
+    private static void serverStart(ZookeeperConnector zkConnector) {
         try {
-            Server server = new Server();
+            ResourceConfig jerseyResource = new org.glassfish.jersey.server.ResourceConfig();
+            jerseyResource.register(new TopicResource(zkConnector));
+            ServletContextHandler contextHandler = new ServletContextHandler();
+
+            ServletHolder servletHolder = new ServletHolder(new ServletContainer(jerseyResource));
+            contextHandler.addServlet(servletHolder, "/*");
+
+            Server server = new Server(8080);
+            server.setHandler(contextHandler);
             server.start();
             server.join();
         } catch (Exception e) {

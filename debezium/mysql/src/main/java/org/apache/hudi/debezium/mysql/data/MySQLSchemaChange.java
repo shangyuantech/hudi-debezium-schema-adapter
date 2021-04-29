@@ -6,6 +6,7 @@ import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
 
 public class MySQLSchemaChange implements SchemaRecord {
 
+    @JsonProperty("database_name")
     private String databaseName;
 
     private String ddl;

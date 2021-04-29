@@ -67,7 +67,8 @@ public class MasterDebeziumService implements IMasterZkService {
             // start a connector scanner task to sync debezium config
             scanner = new ConnectorScannerTask(configBuilderPrototype);
             for (String topic : getSubscribedTopics()) {
-                scanner.addConnector(topic, getTopicConfig(topic));
+                Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+                topicConfig.ifPresent(config -> scanner.addConnector(topic, config));
             }
 
             scanner.start();
@@ -96,16 +97,18 @@ public class MasterDebeziumService implements IMasterZkService {
             // add new topic
             for (String topic : subscribedTopics) {
                 if (!topicTasks.containsKey(topic)) {
-                    TopicConfig topicConfig = getTopicConfig(topic);
+                    Optional<TopicConfig> topicConfig = getTopicConfig(topic);
+                    if (topicConfig.isPresent()) {
+                        if (scannerTaskEnabled) {
+                            scanner.addConnector(topic, topicConfig.get());
+                        }
 
-                    if (scannerTaskEnabled) {
-                        scanner.addConnector(topic, topicConfig);
+                        logger.info("[master] start a new topic({}) task ...", topic);
+                        IDebeziumTopicTask debeziumTopicTask = dbTopicTaskPrototype
+                                .getTopicTask(topicConfig.get().getDbType());
+                        debeziumTopicTask.start(topic, topicConfig.get(), zkConnector);
+                        topicTasks.put(topic, debeziumTopicTask);
                     }
-
-                    logger.info("[master] start a new topic({}) task ...", topic);
-                    IDebeziumTopicTask debeziumTopicTask = dbTopicTaskPrototype.getTopicTask(topicConfig.getDbType());
-                    debeziumTopicTask.start(topic, topicConfig, zkConnector);
-                    topicTasks.put(topic, debeziumTopicTask);
                 }
             }
 
@@ -113,9 +116,15 @@ public class MasterDebeziumService implements IMasterZkService {
         }
     }
 
-    private TopicConfig getTopicConfig(String topic) throws Exception {
+    private Optional<TopicConfig> getTopicConfig(String topic) throws Exception {
         String topicConfigStr = zkConnector.getData(String.format("%s/%s", topicPath, topic));
-        return JsonUtils.readValue(topicConfigStr, TopicConfig.class);
+        TopicConfig topicConfig = null;
+        try {
+            topicConfig = JsonUtils.readValue(topicConfigStr, TopicConfig.class);
+        } catch (Exception e) {
+            logger.warn("[master] Can not read topic config, skip this topic !");
+        }
+        return Optional.ofNullable(topicConfig);
     }
 
     @Override

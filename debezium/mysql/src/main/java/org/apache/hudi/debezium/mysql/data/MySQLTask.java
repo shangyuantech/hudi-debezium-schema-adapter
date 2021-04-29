@@ -1,10 +1,12 @@
 package org.apache.hudi.debezium.mysql.data;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.hudi.debezium.zookeeper.task.Task;
 import org.apache.hudi.schema.common.DDLType;
 
 public class MySQLTask extends Task<MySQLDebeziumConfig, MySQLSchemaChange> {
 
+    @JsonProperty("ddl_type")
     private DDLType ddlType;
 
     public MySQLTask() {

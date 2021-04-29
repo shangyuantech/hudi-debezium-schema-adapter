@@ -1,5 +1,6 @@
 package org.apache.hudi.debezium.mysql.data;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.config.DebeziumConfig;
 
@@ -20,8 +21,11 @@ public class MySQLDebeziumConfig extends DebeziumConfig {
     private String user = "";
     private String password = "";
     private final static String DEFAULT_DATABASE_SSL_MODE = "disabled";
+    @JsonProperty("database_ssl_mode")
     private String databaseSslMode = DEFAULT_DATABASE_SSL_MODE;
+    @JsonProperty("time_precision_mode")
     private String timePrecisionMode = "";
+    @JsonProperty("server_timezone")
     private String serverTimezone = "";
     private final static String DEFAULT_SERVER_TIMEZONE = "Asia/Shanghai";
 

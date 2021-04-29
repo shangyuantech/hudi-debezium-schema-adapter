@@ -1,5 +1,7 @@
 package org.apache.hudi.debezium.config;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public abstract class DebeziumConfig {
@@ -11,6 +13,7 @@ public abstract class DebeziumConfig {
         this.serverName = serverName;
     }
 
+    @JsonProperty("server_name")
     private String serverName;
 
     public String getServerName() {
