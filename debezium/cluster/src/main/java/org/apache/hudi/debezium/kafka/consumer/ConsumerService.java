@@ -4,6 +4,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.hudi.debezium.config.KafkaConfig;
 import org.apache.hudi.debezium.kafka.consumer.record.IRecordService;
 import org.apache.hudi.debezium.kafka.consumer.record.SchemaRecord;
+import org.apache.hudi.debezium.kafka.topic.TopicHistory;
 import org.apache.hudi.debezium.util.JsonUtils;
 import org.apache.hudi.debezium.zookeeper.connector.ZookeeperConnector;
 import org.apache.hudi.debezium.zookeeper.task.SubTask;
@@ -13,21 +14,18 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.PartitionInfo;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.kafka.clients.consumer.ConsumerConfig.AUTO_OFFSET_RESET_CONFIG;
 import static org.apache.kafka.clients.consumer.ConsumerConfig.MAX_POLL_RECORDS_CONFIG;
-
 
 public class ConsumerService extends Thread {
 
@@ -43,22 +41,28 @@ public class ConsumerService extends Thread {
 
     private final ZookeeperConnector zkConnector;
 
+    private final TopicHistory topicHistory;
+
     private final static String HUDI_DBZ_SCHEMA_CHANGE_START_TIME = "HUDI_DBZ_SCHEMA_CHANGE_START_TIME";
     private Long startTime = 0L;
 
     public ConsumerService(String topic, KafkaConfig kafkaConfig, ZookeeperConnector zkConnector,
-                           IRecordService recordService) {
+                           IRecordService recordService) throws Exception {
         this.topic = topic;
         this.kafkaConfig = kafkaConfig;
         this.zkConnector = zkConnector;
         this.recordService = recordService;
 
+        this.topicHistory = new TopicHistory(zkConnector, topic);
+
         if (StringUtils.isBlank(kafkaConfig.get(MAX_POLL_RECORDS_CONFIG))) {
             kafkaConfig.addKafkaConfig(MAX_POLL_RECORDS_CONFIG, "100");
         }
+        // every time is latest
+        kafkaConfig.addKafkaConfig(AUTO_OFFSET_RESET_CONFIG, "latest");
         this.consumer = new KafkaConsumer<>(kafkaConfig.getProps());
 
-        String startTimeStr = System.getenv("HUDI_DBZ_SCHEMA_CHANGE_START_TIME");
+        String startTimeStr = System.getenv(HUDI_DBZ_SCHEMA_CHANGE_START_TIME);
         if (StringUtils.isNotBlank(startTimeStr)) {
             startTime = Long.parseLong(startTimeStr);
         }
@@ -74,17 +78,52 @@ public class ConsumerService extends Thread {
 
     private volatile boolean needRun = true;
 
+    private ConsumerRecords<?, ?> poll() throws InterruptedException {
+        ConsumerRecords<?, ?> msgList = consumer.poll(Duration.ofMillis(TimeUnit.SECONDS.toMillis(1)));
+        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        return msgList;
+    }
+
     @Override
     public void run() {
         consumer.subscribe(Collections.singletonList(topic));
         ConsumerRecords<?, ?> msgList;
-        logger.info("[master] start polling {} topic records ...", topic);
 
+        try {
+            Map<TopicPartition, Long> offsetMap = new HashMap<>(topicHistory.getOffsets());
+            if (offsetMap.size() > 0) {
+                logger.info("[master] Found offset history, start from offsets {} ...", offsetMap);
+                Set<TopicPartition> assignment = new HashSet<>();
+                // poll 1st
+                poll();
+                while (assignment.size() == 0) {
+                    poll();
+                    assignment = consumer.assignment();
+                }
+                logger.info("[master] Found topic {} assignment {}", topic, assignment);
+
+                // deal with assignment
+                for (TopicPartition tp : assignment) {
+                    Long offset =  offsetMap.get(tp);
+                    if (offset != null) {
+                        consumer.seek(tp, offset + 1);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        logger.info("[master] Start polling {} topic records ...", topic);
         while (needRun) {
             try {
-                msgList = consumer.poll(Duration.ofMillis(TimeUnit.SECONDS.toMillis(1)));
+                msgList = poll();
+
                 if (null != msgList && msgList.count() > 0) {
                     for (ConsumerRecord<?, ?> record : msgList) {
+                        // record offset
+                        topicHistory.recordOffset(topic, record.partition(), record.offset());
+
                         if (record.timestamp() < startTime) {
                             if (logger.isTraceEnabled()) {
                                 logger.trace("[publish] record {} is before {}, so that skip.",
@@ -113,14 +152,13 @@ public class ConsumerService extends Thread {
                     if ("false".equals(kafkaConfig.getProps().getProperty(
                             ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true"))
                     ) {
-                        //consumer.commitSync();
+                        consumer.commitSync();
                     }
 
-                    // todo every loop save kafka offset
-                } else {
-                    Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+                    // every loop save kafka offset
+                    topicHistory.syncOffsets();
                 }
-            } catch (InterruptedException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -162,6 +200,7 @@ public class ConsumerService extends Thread {
         try {
             needRun = false;
             consumer.close();
+            topicHistory.removeTopic();
         } catch (Exception e) {
             logger.error("error when closing consumer " + topic, e);
         }

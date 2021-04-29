@@ -21,7 +21,7 @@ public class ZookeeperConnector {
     private CuratorFramework client;
 
     public ZookeeperConnector(ZookeeperConfig config) {
-        this.config = config;
+        this(config, true);
     }
 
     public ZookeeperConnector(ZookeeperConfig config, boolean startClient) {

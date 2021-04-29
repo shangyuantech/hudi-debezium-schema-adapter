@@ -25,12 +25,6 @@ public class MasterService {
         LeaderLatch leaderLatch = new LeaderLatch(zkConnector.getClient(), leaderPath);
         leaderLatch.start();
 
-        // create kafka offset path
-        String kafkaPath = ZooKeeperUtils.getKafkaPath(zkConnector.getConfig().getService());
-        if (zkConnector.dataExists(kafkaPath) == null) {
-            zkConnector.createNode(kafkaPath);
-        }
-
         leaderLatch.addListener(new LeaderLatchListener() {
             @Override
             public void isLeader() {
