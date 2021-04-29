@@ -1,6 +1,7 @@
 */target/
 #debezium/*/*.iml
 debezium/*/target/
+adapter-server/dependency-reduced-pom.xml
 !.mvn/wrapper/maven-wrapper.jar
 
 ### STS ###
