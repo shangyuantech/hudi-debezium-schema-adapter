@@ -87,6 +87,9 @@ public class MasterDebeziumService implements IMasterZkService {
                     if (scannerTaskEnabled) {
                         scanner.removeConnector(topicTask.getKey());
                     }
+
+                    // delete task
+                    topicTasks.remove(topicTask.getKey());
                 }
             }
 

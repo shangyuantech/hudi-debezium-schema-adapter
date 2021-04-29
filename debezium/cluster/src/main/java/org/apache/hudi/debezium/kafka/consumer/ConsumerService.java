@@ -163,7 +163,9 @@ public class ConsumerService extends Thread {
             }
         }
 
+        logger.info("[master] Closing consumer ...");
         consumer.close();
+        logger.info("[master] Finished closing consumer !");
     }
 
     private void registerTask(Task<?, ?> task) throws Exception {
@@ -199,7 +201,7 @@ public class ConsumerService extends Thread {
     public void stopConsumer() {
         try {
             needRun = false;
-            consumer.close();
+            //consumer.close();
             topicHistory.removeTopic();
         } catch (Exception e) {
             logger.error("error when closing consumer " + topic, e);

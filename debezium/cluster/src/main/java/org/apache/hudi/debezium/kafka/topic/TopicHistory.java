@@ -95,7 +95,7 @@ public class TopicHistory {
 
     public void removeTopic() throws Exception {
         logger.info("[topic] Delete topic {} offset history", topic);
-        if (zkConnector.dataExists(topicPath) == null) {
+        if (zkConnector.dataExists(topicPath) != null) {
             zkConnector.delete(topicPath);
         }
     }
