@@ -28,8 +28,16 @@ public class MasterService {
         leaderLatch.addListener(new LeaderLatchListener() {
             @Override
             public void isLeader() {
-                logger.info("[master] start master service to collect topic data ...");
                 try {
+                    // create a leader node and set
+                    String leaderPath = ZooKeeperUtils.getLeaderPath(zkConnector.getConfig().getService());
+                    if (zkConnector.dataExists(leaderPath) == null) {
+                        zkConnector.createNode(leaderPath, ZooKeeperUtils.getInnetIp());
+                    } else {
+                        zkConnector.setData(leaderPath, ZooKeeperUtils.getInnetIp());
+                    }
+
+                    logger.info("[master] start master service to collect topic data ...");
                     masterZkService.isLeader();
                 } catch (Exception e) {
                     e.printStackTrace();

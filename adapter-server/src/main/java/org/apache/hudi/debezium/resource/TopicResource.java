@@ -43,6 +43,27 @@ public class TopicResource {
     }
 
     @GET
+    @Path("/leader")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String leader() throws Exception {
+        String leaderPath = ZooKeeperUtils.getLeaderPath(zkConnector.getConfig().getService());
+        if (zkConnector.dataExists(leaderPath) == null) {
+            return "";
+        } else {
+            return zkConnector.getData(leaderPath);
+        }
+    }
+
+    @GET
+    @Path("/slave")
+    @Produces(MediaType.APPLICATION_JSON)
+    public String slave() throws Exception {
+        String slavePath = ZooKeeperUtils.getSlaveBasePath(zkConnector.getConfig().getService());
+        List<String> slaveList = zkConnector.getChildes(slavePath);
+        return JsonUtils.writeValueAsString(slaveList);
+    }
+
+    @GET
     @Path("/task/{topic}")
     @Produces(MediaType.APPLICATION_JSON)
     public String topicTaskList(@PathParam("topic") String topic) throws Exception {

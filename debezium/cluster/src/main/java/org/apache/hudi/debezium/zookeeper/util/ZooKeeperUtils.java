@@ -14,6 +14,10 @@ public class ZooKeeperUtils {
         return String.format("/%s/topics", service);
     }
 
+    public static String getLeaderPath(String service) {
+        return String.format("/%s/leader", service);
+    }
+
     public static String getMaterPath(String service) {
         return String.format("/%s/master", service);
     }
@@ -27,8 +31,7 @@ public class ZooKeeperUtils {
     }
 
     public static String getSlavePath(String service) {
-        String hostName = getInnetIp();
-        return String.format("%s/%s-%s", getSlaveBasePath(service), hostName, System.currentTimeMillis());
+        return String.format("%s/%s", getSlaveBasePath(service), getInnetIp());
     }
 
     public static String getInnetIp() {
